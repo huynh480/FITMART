@@ -1,0 +1,6 @@
+@Fitmart.API_HostAddress = http://localhost:5049
+
+GET {{Fitmart.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
