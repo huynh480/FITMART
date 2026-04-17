@@ -12,6 +12,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Thêm dịch vụ Controllers
 builder.Services.AddControllers();
 
+// Thêm cấu hình CORS cho phép React gọi API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -25,12 +36,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Sử dụng CORS middleware
+app.UseCors("AllowAll");
+
 var summaries = new[]
 {
-    "FrControllers();
-
-app.Mapeezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+
+app.MapControllers();
 
 app.MapGet("/weatherforecast", () =>
 {
