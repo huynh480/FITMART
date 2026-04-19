@@ -1,3 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased; /* Làm font chữ mịn hơn trên màn hình độ phân giải cao */
+}
+
+/* Custom Scrollbar chuyên nghiệp */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FA541C; /* Đổi sang cam khi trượt */
+}
+
+/* Hiệu ứng nổi bần bật cho Card Sản phẩm */
+.sport-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.sport-card:hover {
+  transform: translateY(-8px); /* Nhảy lên một chút khi hover */
+  box-shadow: 0 12px 24px rgba(250, 84, 28, 0.15) !important; /* Tỏa hào quang màu cam */
+  border-color: #FA541C !important;
+}
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -16,6 +54,7 @@
     outline-offset: 2px;
   }
 }
+
 
 .hero {
   position: relative;

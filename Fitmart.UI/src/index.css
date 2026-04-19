@@ -1,3 +1,8 @@
+/* ===== Tailwind CSS v4 (không import preflight để tránh xung đột Ant Design) ===== */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+/* ===== Custom Styles ===== */
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -54,12 +59,49 @@ body {
   margin: 0;
 }
 
+/* Hiệu ứng Navbar */
+.nav-link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #FA541C;
+}
+
+.nav-icon {
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.nav-icon:hover {
+  color: #FA541C;
+}
+
+/* Hiệu ứng nổi lên cho Card Sản Phẩm */
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
