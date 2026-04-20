@@ -16,7 +16,8 @@ function App() {
       theme={{
         algorithm: theme.darkAlgorithm,
         token: {
-          colorPrimary: '#FA541C',
+          colorPrimary: '#ffffff',
+          colorTextLightSolid: '#000000',
           colorBgBase: '#000000',
           colorBgContainer: '#141414',
           fontFamily: "'Inter', sans-serif",

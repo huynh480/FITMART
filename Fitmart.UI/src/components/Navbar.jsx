@@ -23,7 +23,7 @@ const Navbar = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 48px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
         {/* Logo */}
         <div className="logo" style={{ flex: 1 }}>
-          <Link to="/" style={{ fontSize: '32px', fontWeight: '900', color: '#FA541C', textDecoration: 'none', letterSpacing: '1px' }}>
+          <Link to="/" style={{ fontSize: '32px', fontWeight: '900', color: '#ffffff', textDecoration: 'none', letterSpacing: '1px' }}>
             FITMART
           </Link>
         </div>
@@ -46,7 +46,7 @@ const Navbar = () => {
               <UserOutlined className="nav-icon" />
             </Link>
             <Link to="/cart">
-              <Badge count={2} color="#FA541C" offset={[-2, 6]}>
+              <Badge count={2} color="#ffffff" style={{ color: '#000000' }} offset={[-2, 6]}>
                 <ShoppingCartOutlined className="nav-icon" />
               </Badge>
             </Link>

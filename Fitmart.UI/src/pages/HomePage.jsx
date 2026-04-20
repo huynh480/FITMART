@@ -1,6 +1,7 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Button, Tag, Carousel } from 'antd';
+import { Card, Row, Col, Typography, Button, Tag } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
+import HeroBanner from '../components/HeroBanner';
 
 const { Title, Text } = Typography;
 const { Meta } = Card;
@@ -51,71 +52,18 @@ const HomePage = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  const carouselStyle = {
-    height: '500px',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: '#fff',
-    textAlign: 'center',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    position: 'relative'
-  };
 
-  const overlayStyle = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    zIndex: 1
-  };
-
-  const contentStyle = {
-    position: 'relative',
-    zIndex: 2,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%'
-  };
 
   return (
-    <div style={{ backgroundColor: '#141414', minHeight: '100vh', paddingBottom: '50px' }}>
-      <Carousel autoplay effect="fade">
-        <div>
-          <div style={{ ...carouselStyle, backgroundImage: 'url(https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop)' }}>
-            <div style={overlayStyle}></div>
-            <div style={contentStyle}>
-              <Title style={{ color: '#FA541C', fontSize: '64px', margin: 0, textTransform: 'uppercase', fontWeight: 900, textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>ĐÁNH THỨC SỨC MẠNH BÊN TRONG BẠN</Title>
-              <Button type="primary" size="large" style={{ marginTop: '40px', fontWeight: 'bold', padding: '0 50px', height: '56px', fontSize: '20px', backgroundColor: '#FA541C', borderColor: '#FA541C', borderRadius: '4px' }}>
-                Khám phá ngay
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div style={{ ...carouselStyle, backgroundImage: 'url(https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=1470&auto=format&fit=crop)' }}>
-            <div style={overlayStyle}></div>
-            <div style={contentStyle}>
-              <Title style={{ color: '#FA541C', fontSize: '64px', margin: 0, textTransform: 'uppercase', fontWeight: 900, textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>CHINH PHỤC MỌI GIỚI HẠN</Title>
-              <Button type="primary" size="large" style={{ marginTop: '40px', fontWeight: 'bold', padding: '0 50px', height: '56px', fontSize: '20px', backgroundColor: '#FA541C', borderColor: '#FA541C', borderRadius: '4px' }}>
-                Bắt đầu ngay
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Carousel>
+    <div style={{ backgroundColor: '#000000', minHeight: '100vh', paddingBottom: '50px' }}>
+      {/* Hero Banner — 21st.dev component, Gymshark-styled */}
+      <HeroBanner />
 
       {/* SẢN PHẨM MỚI */}
       <div style={{ padding: '0 50px' }}>
         <div style={{ textAlign: 'center', marginBottom: '50px', marginTop: '60px' }}>
           <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#fff', fontSize: '40px', letterSpacing: '2px' }}>SẢN PHẨM MỚI</Title>
-          <div style={{ width: '80px', height: '4px', backgroundColor: '#FA541C', margin: '16px auto 0' }}></div>
+          <div style={{ width: '80px', height: '4px', backgroundColor: '#ffffff', margin: '16px auto 0' }}></div>
         </div>
 
         <Row gutter={[32, 32]}>
@@ -147,7 +95,7 @@ const HomePage = () => {
                 }}
               >
                 {item.tag && (
-                  <Tag color="#FA541C" style={{ position: 'absolute', top: 16, left: 16, border: 'none', fontWeight: 'bold', padding: '6px 12px', borderRadius: '2px', fontSize: '12px' }}>
+                  <Tag color="#ffffff" style={{ color: '#000000', position: 'absolute', top: 16, left: 16, border: 'none', fontWeight: 'bold', padding: '6px 12px', borderRadius: '2px', fontSize: '12px' }}>
                     {item.tag.toUpperCase()}
                   </Tag>
                 )}
@@ -155,7 +103,7 @@ const HomePage = () => {
                   title={<span style={{ fontSize: '18px', fontFamily: 'sans-serif', color: '#fff', fontWeight: '600', whiteSpace: 'normal', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.name}</span>} 
                   description={
                     <div style={{ marginTop: '12px', marginBottom: '24px' }}>
-                      <strong style={{ color: '#FA541C', fontSize: '22px', fontWeight: '900' }}>
+                      <strong style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900' }}>
                         {formatPrice(item.price)}
                       </strong>
                     </div>
@@ -166,8 +114,8 @@ const HomePage = () => {
                   icon={<ShoppingCartOutlined />} 
                   style={{ 
                     width: 'calc(100% + 40px)', 
-                    backgroundColor: '#FA541C', 
-                    color: '#fff',
+                    backgroundColor: '#ffffff', 
+                    color: '#000000',
                     borderRadius: '0',
                     height: '50px',
                     fontWeight: 'bold',
@@ -193,7 +141,7 @@ const HomePage = () => {
       <div style={{ padding: '0 50px' }}>
         <div style={{ textAlign: 'center', marginBottom: '50px', marginTop: '80px' }}>
           <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#fff', fontSize: '40px', letterSpacing: '2px' }}>FLASH SALE</Title>
-          <div style={{ width: '80px', height: '4px', backgroundColor: '#FA541C', margin: '16px auto 0' }}></div>
+          <div style={{ width: '80px', height: '4px', backgroundColor: '#ffffff', margin: '16px auto 0' }}></div>
         </div>
 
         <Row gutter={[32, 32]}>
@@ -231,7 +179,7 @@ const HomePage = () => {
                   title={<span style={{ fontSize: '18px', fontFamily: 'sans-serif', color: '#fff', fontWeight: '600', whiteSpace: 'normal', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.name}</span>} 
                   description={
                     <div style={{ marginTop: '12px', marginBottom: '24px' }}>
-                      <strong style={{ color: '#FA541C', fontSize: '22px', fontWeight: '900', marginRight: '10px' }}>
+                      <strong style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', marginRight: '10px' }}>
                         {formatPrice(item.price * 0.8)}
                       </strong>
                       <span style={{ textDecoration: 'line-through', color: '#888', fontSize: '16px' }}>
@@ -245,8 +193,8 @@ const HomePage = () => {
                   icon={<ShoppingCartOutlined />} 
                   style={{ 
                     width: 'calc(100% + 40px)', 
-                    backgroundColor: '#FA541C', 
-                    color: '#fff',
+                    backgroundColor: '#ffffff', 
+                    color: '#000000',
                     borderRadius: '0',
                     height: '50px',
                     fontWeight: 'bold',

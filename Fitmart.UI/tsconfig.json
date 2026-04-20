@@ -21,6 +21,7 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path alias cho shadcn components */
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

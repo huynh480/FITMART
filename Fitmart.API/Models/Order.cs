@@ -16,6 +16,7 @@ public class Order
     public User? User { get; set; }
 
     [Required]
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalAmount { get; set; }
 
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;

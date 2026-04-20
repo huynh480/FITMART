@@ -1,4 +1,5 @@
 using Fitmart.API.Data;
+using Fitmart.API.DTOs;
 using Fitmart.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,15 +19,52 @@ public class ProductsController : ControllerBase
 
     // GET: api/Products
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult> GetProducts(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10, 
+        [FromQuery] string? gender = null,
+        [FromQuery] string? collection = null,
+        [FromQuery] int? categoryId = null)
     {
         try
         {
-            var products = await _context.Products
-                .Include(p => p.Category) // Lấy kèm thông tin Category
+            var query = _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductVariants)
+                .AsQueryable();
+
+            // Lọc theo các tiêu chí (Gender, Collection, Category)
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+            if (!string.IsNullOrEmpty(gender))
+            {
+                query = query.Where(p => p.Gender == gender);
+            }
+            if (!string.IsNullOrEmpty(collection))
+            {
+                query = query.Where(p => p.Collection == collection);
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var products = await query
+                .OrderByDescending(p => p.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(products);
+            var productDtos = products.Select(p => MapToProductDto(p)).ToList();
+
+            return Ok(new 
+            {
+                totalItems,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                items = productDtos
+            });
         }
         catch (Exception ex)
         {
@@ -34,14 +72,39 @@ public class ProductsController : ControllerBase
         }
     }
 
+    // GET: api/Products/featured
+    [HttpGet("featured")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetFeaturedProducts()
+    {
+        try
+        {
+            var products = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductVariants)
+                .Where(p => p.IsFeatured)
+                .OrderByDescending(p => p.Id)
+                .Take(8)
+                .ToListAsync();
+
+            var productDtos = products.Select(p => MapToProductDto(p)).ToList();
+
+            return Ok(productDtos);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách sản phẩm nổi bật.", error = ex.Message });
+        }
+    }
+
     // GET: api/Products/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public async Task<ActionResult<ProductDto>> GetProduct(int id)
     {
         try
         {
             var product = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductVariants)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
@@ -49,7 +112,7 @@ public class ProductsController : ControllerBase
                 return NotFound(new { message = "Không tìm thấy sản phẩm." });
             }
 
-            return Ok(product);
+            return Ok(MapToProductDto(product));
         }
         catch (Exception ex)
         {
@@ -63,7 +126,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            // Kiểm tra Category có tồn tại không
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
             if (!categoryExists)
             {
@@ -92,7 +154,6 @@ public class ProductsController : ControllerBase
 
         try
         {
-            // Kiểm tra Category có tồn tại không
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
             if (!categoryExists)
             {
@@ -101,21 +162,24 @@ public class ProductsController : ControllerBase
 
             _context.Entry(product).State = EntityState.Modified;
             await _context.SaveChangesAsync();
-
-            return NoContent();
         }
         catch (DbUpdateConcurrencyException)
         {
             if (!ProductExists(id))
             {
-                return NotFound(new { message = "Không tìm thấy sản phẩm để cập nhật." });
+                return NotFound();
             }
-            throw;
+            else
+            {
+                throw;
+            }
         }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi cập nhật sản phẩm.", error = ex.Message });
         }
+
+        return NoContent();
     }
 
     // DELETE: api/Products/5
@@ -127,7 +191,7 @@ public class ProductsController : ControllerBase
             var product = await _context.Products.FindAsync(id);
             if (product == null)
             {
-                return NotFound(new { message = "Không tìm thấy sản phẩm để xóa." });
+                return NotFound();
             }
 
             _context.Products.Remove(product);
@@ -144,5 +208,34 @@ public class ProductsController : ControllerBase
     private bool ProductExists(int id)
     {
         return _context.Products.Any(e => e.Id == id);
+    }
+
+    private ProductDto MapToProductDto(Product p)
+    {
+        return new ProductDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Price = p.Price,
+            Description = p.Description,
+            Gender = p.Gender,
+            Collection = p.Collection,
+            IsFeatured = p.IsFeatured,
+            CategoryId = p.CategoryId,
+            Category = p.Category != null ? new CategoryDto
+            {
+                Id = p.Category.Id,
+                Name = p.Category.Name,
+                Description = p.Category.Description
+            } : null,
+            ProductVariants = p.ProductVariants?.Select(v => new ProductVariantDto
+            {
+                Id = v.Id,
+                Color = v.Color,
+                Size = v.Size,
+                StockQuantity = v.StockQuantity,
+                ImageUrl = v.ImageUrl
+            }).ToList() ?? new List<ProductVariantDto>()
+        };
     }
 }
