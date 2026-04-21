@@ -29,6 +29,14 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// Seed data
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    DbSeeder.Seed(context);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -36,6 +44,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Phục vụ file tĩnh (ảnh từ wwwroot)
+app.UseStaticFiles();
 
 // Sử dụng CORS middleware
 app.UseCors("AllowAll");
@@ -60,6 +71,10 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+
+app.UseStaticFiles(); // Dòng này cho phép Backend mở thư mục wwwroot ra bên ngoài
+
 
 app.Run();
 
