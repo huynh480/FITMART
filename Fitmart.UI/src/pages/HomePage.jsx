@@ -35,20 +35,20 @@ const HomePage = () => {
   };
 
   if (loading) {
-    const antIcon = <LoadingOutlined style={{ fontSize: 48, color: '#fff' }} spin />;
-    return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}><Spin indicator={antIcon} /></div>;
+    const antIcon = <LoadingOutlined style={{ fontSize: 48, color: '#000' }} spin />;
+    return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><Spin indicator={antIcon} /></div>;
   }
 
   return (
-    <div style={{ backgroundColor: '#000000', minHeight: '100vh', paddingBottom: '50px' }}>
+    <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '50px' }}>
       {/* Hero Banner — 21st.dev component, Gymshark-styled */}
       <HeroBanner />
 
       {/* SẢN PHẨM MỚI TỪ API */}
-      <div style={{ padding: '0 50px' }}>
+      <div style={{ padding: '0 60px' }}>
         <div style={{ textAlign: 'center', marginBottom: '50px', marginTop: '60px' }}>
-          <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#fff', fontSize: '40px', letterSpacing: '2px' }}>SẢN PHẨM MỚI</Title>
-          <div style={{ width: '80px', height: '4px', backgroundColor: '#ffffff', margin: '16px auto 0' }}></div>
+          <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#000', fontSize: '40px', letterSpacing: '2px' }}>SẢN PHẨM MỚI</Title>
+          <div style={{ width: '80px', height: '4px', backgroundColor: '#000000', margin: '16px auto 0' }}></div>
         </div>
 
         <Row gutter={[32, 32]}>
@@ -72,10 +72,10 @@ const HomePage = () => {
       </div>
 
       {/* FEATURED / NỔI BẬT */}
-      <div style={{ padding: '0 50px', marginTop: '80px' }}>
+      <div style={{ padding: '0 60px', marginTop: '80px' }}>
         <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-          <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#fff', fontSize: '40px', letterSpacing: '2px' }}>SẢN PHẨM NỔI BẬT</Title>
-          <div style={{ width: '80px', height: '4px', backgroundColor: '#ffffff', margin: '16px auto 0' }}></div>
+          <Title level={2} style={{ margin: 0, fontWeight: 900, textTransform: 'uppercase', color: '#000', fontSize: '40px', letterSpacing: '2px' }}>SẢN PHẨM NỔI BẬT</Title>
+          <div style={{ width: '80px', height: '4px', backgroundColor: '#000000', margin: '16px auto 0' }}></div>
         </div>
 
         <Row gutter={[32, 32]}>

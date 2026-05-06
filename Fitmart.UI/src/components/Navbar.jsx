@@ -12,26 +12,25 @@ const Navbar = () => {
   return (
     <>
       {/* Top Promotional Banner (Đặc trưng của Gymshark) */}
-      <div style={{ backgroundColor: '#222222', color: '#ffffff', textAlign: 'center', padding: '10px 16px', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Roboto', sans-serif", letterSpacing: '1px' }}>
+      <div style={{ backgroundColor: '#f5f5f5', color: '#000000', textAlign: 'center', padding: '10px 16px', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Roboto', sans-serif", letterSpacing: '1px' }}>
         MIỄN PHÍ VẬN CHUYỂN VỚI ĐƠN HÀNG TỪ 500.000Đ
       </div>
 
-      <Header style={{ 
+      <Header className="bg-white border-b border-gray-100" style={{ 
         position: 'sticky', 
         top: 0, 
         zIndex: 100, 
         width: '100%', 
-        background: '#000000', 
-        padding: '0 40px',
+        background: '#ffffff', 
+        padding: '0 60px',
         height: '76px',
         lineHeight: '76px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
+        justifyContent: 'space-between'
       }}>
         {/* Khung Category Links */}
-        <div style={{ display: 'flex', gap: '32px', flex: 1 }}>
+        <div style={{ display: 'flex', gap: '15px', flex: 1 }}>
           <Link to="/category/men" className="nav-link" style={{ fontFamily: "'Roboto', sans-serif", fontSize: '15px' }}>NAM</Link>
           <Link to="/category/women" className="nav-link" style={{ fontFamily: "'Roboto', sans-serif", fontSize: '15px' }}>NỮ</Link>
           <Link to="/category/accessories" className="nav-link" style={{ fontFamily: "'Roboto', sans-serif", fontSize: '15px' }}>PHỤ KIỆN</Link>
@@ -39,15 +38,15 @@ const Navbar = () => {
 
         {/* Logo */}
         <div className="logo" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-          <Link to="/" style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', textDecoration: 'none', letterSpacing: '2px', fontFamily: "'Roboto', sans-serif" }}>
+          <Link to="/" style={{ fontSize: '26px', fontWeight: '900', color: '#000000', textDecoration: 'none', letterSpacing: '2px', fontFamily: "'Roboto', sans-serif" }}>
             FITMART
           </Link>
         </div>
 
         {/* Các nút bấm Icon Hành động và Search */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '20px', flex: 1, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px', flex: 1, position: 'relative' }}>
           {isSearchActive ? (
-            <div style={{ display: 'flex', alignItems: 'center', position: 'absolute', right: '40px', backgroundColor: '#000000', padding: '0 10px', zIndex: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', position: 'absolute', right: '0', backgroundColor: '#ffffff', padding: '0 10px', zIndex: 10 }}>
               <Search 
                 placeholder="Bạn đang tìm kiếm điều gì?" 
                 allowClear

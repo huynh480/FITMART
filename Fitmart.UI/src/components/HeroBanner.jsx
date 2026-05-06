@@ -8,9 +8,9 @@ import heroVideo from '@/assets/148204-793717940_large.mp4';
  * HeroBanner – FITMART
  * 
  * Design tokens (Gymshark Design System):
- * - color.surface.base: #000000
- * - color.surface.raised: #ffffff
- * - color.text.primary: #ffffff
+ * - color.surface.base: #ffffff
+ * - color.surface.raised: #000000
+ * - color.text.primary: #000000
  * - color.text.secondary: #6e6e6e
  * - color.text.inverse: #000000
  * - font.family.primary: Roboto
@@ -22,7 +22,7 @@ const HeroBanner = () => {
   return (
     <div className="overflow-x-hidden">
       {/* ══════════ HERO SECTION ══════════ */}
-      <section className="relative" style={{ backgroundColor: '#000000' }}>
+      <section className="relative" style={{ backgroundColor: '#ffffff' }}>
         {/* ── Video Background (Layer 1 — dưới cùng) ── */}
         <div className="absolute inset-0 overflow-hidden">
           <video
@@ -35,16 +35,16 @@ const HeroBanner = () => {
           />
         </div>
 
-        {/* ── Dark Overlay (Layer 2 — phủ lên video) ── */}
-        {/* Overlay đen 70% + gradient dưới cùng để chữ trắng nổi bật */}
+        {/* ── Light Overlay (Layer 2 — phủ lên video) ── */}
+        {/* Overlay trắng nhẹ + gradient để giữ độ tương phản cho chữ đen */}
         <div
           className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.70)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}
         />
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.85) 100%)',
+            background: 'linear-gradient(to bottom, transparent 40%, rgba(255,255,255,0.92) 100%)',
           }}
         />
 
@@ -61,7 +61,7 @@ const HeroBanner = () => {
                   fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
                   fontSize: 'clamp(32px, 6vw, 72px)',
                   lineHeight: 1.05,
-                  color: '#ffffff',
+                  color: '#000000',
                 }}
               >
                 ĐÁNH THỨC SỨC MẠNH BÊN TRONG
@@ -76,7 +76,7 @@ const HeroBanner = () => {
                   fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
                   fontSize: '16px',
                   lineHeight: '24px',
-                  color: 'rgba(255, 255, 255, 0.7)',
+                  color: '#6e6e6e',
                 }}
               >
                 Trang bị hoàn hảo cho mọi bài tập. Từ tạ đơn đến đồ tập cao cấp — 
@@ -93,10 +93,10 @@ const HeroBanner = () => {
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 rounded-none px-8 text-base font-semibold border-0 transition-all duration-200 hover:bg-neutral-200"
+                  className="h-12 rounded-[4px] px-[16px] text-base font-semibold border-0 transition-all duration-200 hover:bg-[#1b1b1b]"
                   style={{
-                    backgroundColor: '#ffffff',
-                    color: '#000000',
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
                     fontFamily: "'Roboto', sans-serif",
                   }}
                 >
@@ -110,11 +110,11 @@ const HeroBanner = () => {
                   asChild
                   size="lg"
                   variant="ghost"
-                  className="h-12 rounded-none px-8 text-base font-semibold transition-all duration-200"
+                  className="h-12 rounded-[4px] px-[16px] text-base font-semibold transition-all duration-200 hover:bg-[#f5f5f5]"
                   style={{
-                    color: '#ffffff',
+                    color: '#000000',
                     borderWidth: '1px',
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderColor: '#d9d9d9',
                     fontFamily: "'Roboto', sans-serif",
                   }}
                 >

@@ -20,7 +20,7 @@ Deliver implementation-ready design-system guidance for Gymshark Official Store 
 - Visual style: structured, accessible, implementation-first
 - Main font style: `font.family.primary=Roboto`, `font.family.stack=Roboto, Helvetica, Arial, sans-serif`, `font.size.base=14px`, `font.weight.base=400`, `font.lineHeight.base=19px`
 - Typography scale: `font.size.xs=12px`, `font.size.sm=14px`, `font.size.md=16px`, `font.size.lg=18px`, `font.size.xl=23px`, `font.size.2xl=24px`, `font.size.3xl=25px`, `font.size.4xl=32px`
-- Color palette: `color.text.tertiary=#f5f5f5`, `color.text.inverse=#181818`, `color.surface.base=#000000`, `color.surface.muted=#969696`, `color.surface.strong=#917300`
+- Color palette: `color.surface.base=#ffffff`, `color.text.secondary=#6e6e6e`, `color.text.tertiary=#1b1b1b`, `color.text.inverse=#000000`
 - Spacing scale: `space.1=4px`, `space.2=15px`, `space.3=16px`, `space.4=60px`
 - Radius/shadow/motion tokens: `motion.duration.instant=125ms`, `motion.duration.fast=200ms`
 

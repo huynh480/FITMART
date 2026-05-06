@@ -56,13 +56,13 @@ export function ProductCard({
   return (
     <a 
       href="#"
-      className={cn("group flex flex-col no-underline focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#917300]", className)}
+      className={cn("group flex flex-col no-underline focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#000000]", className)}
       style={{ perspective: "1000px" }}
       {...props}
     >
       <div 
         ref={containerRef}
-        className="w-full aspect-[3/4] bg-[#181818] overflow-hidden relative cursor-pointer rounded-sm"
+        className="w-full aspect-[3/4] bg-[#f5f5f5] overflow-hidden relative cursor-pointer rounded-[4px]"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
@@ -98,17 +98,17 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-col pt-[15px] space-y-[4px]">
-        <h3 className="font-['Roboto',sans-serif] text-[16px] font-medium leading-[19px] text-[#f5f5f5]">
+        <h3 className="font-['Roboto',sans-serif] text-[16px] font-medium leading-[19px] text-[#000000]">
           {title}
         </h3>
         
         {description && (
-          <p className="font-['Roboto',sans-serif] text-[14px] leading-[19px] text-[#969696] line-clamp-1">
+          <p className="font-['Roboto',sans-serif] text-[14px] leading-[19px] text-[#6e6e6e] line-clamp-1">
             {description}
           </p>
         )}
         
-        <p className="font-['Roboto',sans-serif] font-medium text-[16px] leading-[19px] text-[#f5f5f5] pt-[15px]">
+        <p className="font-['Roboto',sans-serif] font-medium text-[16px] leading-[19px] text-[#000000] pt-[15px]">
           {price}
         </p>
       </div>

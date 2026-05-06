@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Layout, ConfigProvider, theme } from 'antd';
+import { Layout, ConfigProvider } from 'antd';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import { BackgroundPaths } from './components/ui/background-paths';
@@ -14,12 +14,13 @@ function App() {
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme.darkAlgorithm,
         token: {
-          colorPrimary: '#ffffff',
-          colorTextLightSolid: '#000000',
-          colorBgBase: '#000000',
-          colorBgContainer: '#141414',
+          colorPrimary: '#000000',
+          colorText: '#000000',
+          colorTextSecondary: '#6e6e6e',
+          colorTextLightSolid: '#ffffff',
+          colorBgBase: '#ffffff',
+          colorBgContainer: '#ffffff',
           fontFamily: "'Inter', sans-serif",
           borderRadius: 4,
         },
@@ -36,7 +37,7 @@ function App() {
       }}
     >
       <Router>
-        <Layout style={{ minHeight: '100vh', background: '#000000' }}>
+        <Layout style={{ minHeight: '100vh', background: '#ffffff' }}>
           <Navbar />
           <Content style={{ flex: 1 }}>
             <Routes>
@@ -46,7 +47,7 @@ function App() {
               <Route path='/demo' element={<BackgroundPaths title="FITMART" />} />
             </Routes>
           </Content>
-          <Footer style={{ textAlign: 'center', background: '#000000', color: '#888', borderTop: '1px solid #222' }}>
+          <Footer style={{ textAlign: 'center', background: '#ffffff', color: '#6e6e6e', borderTop: 'none' }}>
             FITMART ©{new Date().getFullYear()} Created with React & Ant Design
           </Footer>
         </Layout>

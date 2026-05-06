@@ -61,7 +61,7 @@ body {
 
 /* Hiệu ứng Navbar */
 .nav-link {
-  color: #fff;
+  color: #000;
   text-decoration: none;
   font-size: 16px;
   font-weight: 700;
@@ -70,11 +70,11 @@ body {
 }
 
 .nav-link:hover {
-  color: #969696;
+  color: #6e6e6e;
 }
 
 .nav-icon {
-  color: #fff;
+  color: #000;
   font-size: 24px;
   cursor: pointer;
   transition: color 0.3s ease;
