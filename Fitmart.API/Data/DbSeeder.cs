@@ -79,12 +79,6 @@ public static class DbSeeder
                         else if (nameLower.Contains("quần") || nameLower.Contains("jogger")) catId = catJoggers;
                         if (dto.Category == "Phụ kiện") catId = catAccessories;
 
-                        // Chọn ảnh ngẫu nhiên phù hợp
-                        string imgUrl = "";
-                        if (dto.Category == "Nam") imgUrl = namImages[random.Next(namImages.Length)];
-                        else if (dto.Category == "Nữ") imgUrl = nuImages[random.Next(nuImages.Length)];
-                        else imgUrl = accImages[random.Next(accImages.Length)];
-
                         var product = new Product
                         {
                             Name = dto.Name,
@@ -94,17 +88,30 @@ public static class DbSeeder
                             Collection = dto.Collection,
                             IsFeatured = dto.IsBestSeller,
                             CategoryId = catId,
-                            ProductVariants = new List<ProductVariant>
-                            {
-                                new ProductVariant
-                                {
-                                    Color = "Default",
-                                    Size = dto.Sizes != null && dto.Sizes.Count > 0 ? dto.Sizes[0] : "One Size",
-                                    StockQuantity = dto.Stock,
-                                    ImageUrl = imgUrl
-                                }
-                            }
+                            ProductVariants = new List<ProductVariant>()
                         };
+
+                        if (dto.Sizes != null && dto.Sizes.Any())
+                        {
+                            foreach(var size in dto.Sizes) {
+                                product.ProductVariants.Add(new ProductVariant {
+                                    Color = "Default",
+                                    Size = size,
+                                    StockQuantity = dto.Stock,
+                                    ImageUrl = dto.ImageUrl // Dùng trực tiếp ảnh từ json hoặc chuỗi "PLACEHOLDER"
+                                });
+                            }
+                        }
+                        else 
+                        {
+                           product.ProductVariants.Add(new ProductVariant {
+                                Color = "Default",
+                                Size = "One Size",
+                                StockQuantity = dto.Stock,
+                                ImageUrl = dto.ImageUrl
+                            });
+                        }
+
                         products.Add(product);
                     }
                     context.Products.AddRange(products);
