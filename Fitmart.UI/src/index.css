@@ -20,6 +20,18 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  /* ── FITMART Design Tokens (Gymshark Monochrome system) ── */
+  --fm-text-primary:   #1b1b1b;
+  --fm-text-secondary: #6e6e6e;
+  --fm-surface:        #ffffff;
+  --fm-overlay:        rgba(0, 0, 0, 0.35);
+  --fm-font-primary:   'Roboto', 'Helvetica', Arial, sans-serif;
+
+  /* Motion */
+  --fm-duration-fast:    200ms;
+  --fm-duration-instant: 125ms;
+  --fm-ease:             ease-in-out;
+
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
@@ -84,19 +96,12 @@ body {
   color: #969696;
 }
 
-/* Hiệu ứng nổi lên cho Card Sản Phẩm */
+/* ProductCard — flat design system (no box-shadow per DESIGN.md anti-patterns) */
 .product-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  transition: none;
 }
 
-.product-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
-}
-
-.product-card:hover .product-image {
-  transform: scale(1.05);
-}
+/* Image scale handled by Tailwind group-hover:scale-[1.04] in component */
 
 #root {
   width: 100%;

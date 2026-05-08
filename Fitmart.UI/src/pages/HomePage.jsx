@@ -60,10 +60,11 @@ const HomePage = () => {
             return (
             <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
               <ProductCard
-                images={images}
-                title={item.name}
-                description={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
-                price={formatPrice(item.price * 25000)}
+                id={item.id}
+                image={images[0]}
+                productName={item.name}
+                collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
+                price={formatPrice(item.price)}
               />
             </Col>
             );
@@ -87,10 +88,11 @@ const HomePage = () => {
             return (
             <Col xs={24} sm={12} md={8} lg={6} key={`featured-${item.id}`}>
               <ProductCard
-                images={images}
-                title={item.name}
-                description={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
-                price={formatPrice(item.price * 25000)}
+                id={item.id}
+                image={images[0]}
+                productName={item.name}
+                collectionName={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
+                price={formatPrice(item.price)}
               />
             </Col>
             );

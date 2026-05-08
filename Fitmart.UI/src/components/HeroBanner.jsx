@@ -35,18 +35,8 @@ const HeroBanner = () => {
           />
         </div>
 
-        {/* ── Light Overlay (Layer 2 — phủ lên video) ── */}
-        {/* Overlay trắng nhẹ + gradient để giữ độ tương phản cho chữ đen */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to bottom, transparent 40%, rgba(255,255,255,0.92) 100%)',
-          }}
-        />
+        {/* ── Dark Overlay (Layer 2 — phủ lên video) ── */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
 
         {/* ── Text Content (Layer 3 — trên cùng, z-10) ── */}
         <div className="relative z-10 py-24 md:pb-32 lg:pb-36 lg:pt-44">
@@ -56,12 +46,9 @@ const HeroBanner = () => {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: 'easeOut' }}
-                className="mt-8 max-w-3xl text-balance font-bold uppercase tracking-tight lg:mt-16"
+                className="mt-8 max-w-3xl text-balance font-black text-5xl md:text-6xl uppercase tracking-tight leading-tight lg:mt-16 text-white"
                 style={{
                   fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
-                  fontSize: 'clamp(32px, 6vw, 72px)',
-                  lineHeight: 1.05,
-                  color: '#000000',
                 }}
               >
                 ĐÁNH THỨC SỨC MẠNH BÊN TRONG
@@ -71,15 +58,14 @@ const HeroBanner = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
-                className="mt-6 max-w-xl text-balance"
+                className="mt-6 max-w-xl text-balance text-white"
                 style={{
                   fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
                   fontSize: '16px',
                   lineHeight: '24px',
-                  color: '#6e6e6e',
                 }}
               >
-                Trang bị hoàn hảo cho mọi bài tập. Từ tạ đơn đến đồ tập cao cấp — 
+                Trang bị hoàn hảo cho mọi bài tập. Từ tạ đơn đến đồ tập cao cấp —
                 tất cả tại FITMART. Nơi chinh phục giới hạn bắt đầu.
               </motion.p>
 
@@ -93,7 +79,7 @@ const HeroBanner = () => {
                 <Button
                   asChild
                   size="lg"
-                  className="h-12 rounded-[4px] px-[16px] text-base font-semibold border-0 transition-all duration-200 hover:bg-[#1b1b1b]"
+                  className="h-12 rounded-none px-[16px] text-base font-semibold border-0 transition-all duration-200 hover:bg-[#1b1b1b]"
                   style={{
                     backgroundColor: '#000000',
                     color: '#ffffff',
@@ -101,7 +87,7 @@ const HeroBanner = () => {
                   }}
                 >
                   <Link to="/products">
-                    <span className="text-nowrap uppercase tracking-wider">Khám phá ngay</span>
+                    <span className="text-nowrap uppercase tracking-wider">KHÁM PHÁ NGAY</span>
                     <ChevronRight className="ml-1 size-5" />
                   </Link>
                 </Button>
@@ -110,16 +96,15 @@ const HeroBanner = () => {
                   asChild
                   size="lg"
                   variant="ghost"
-                  className="h-12 rounded-[4px] px-[16px] text-base font-semibold transition-all duration-200 hover:bg-[#f5f5f5]"
+                  className="h-12 rounded-none px-[16px] text-base font-semibold transition-all duration-200 hover:bg-[#e5e5e5]"
                   style={{
+                    backgroundColor: '#ffffff',
                     color: '#000000',
-                    borderWidth: '1px',
-                    borderColor: '#d9d9d9',
                     fontFamily: "'Roboto', sans-serif",
                   }}
                 >
                   <Link to="/category/new">
-                    <span className="text-nowrap uppercase tracking-wider">Bộ sưu tập mới</span>
+                    <span className="text-nowrap uppercase tracking-wider">BỘ SƯU TẬP MỚI</span>
                   </Link>
                 </Button>
               </motion.div>
