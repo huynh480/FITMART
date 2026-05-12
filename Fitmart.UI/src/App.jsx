@@ -2,11 +2,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout, ConfigProvider } from 'antd';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
+import CollectionPage from './pages/CollectionPage';
 import { BackgroundPaths } from './components/ui/background-paths';
 import './App.css';
 
-const Cart = () => <div><h1>Giỏ hàng</h1><p>Các sản phẩm đã chọn</p></div>;
-const Admin = () => <div><h1>Trang Quản lý Admin</h1><p>Thêm/Xóa/Sửa sản phẩm và danh mục</p></div>;
+const Cart = () => <div style={{padding:'80px 60px'}}><h1>Giỏ hàng</h1><p>Các sản phẩm đã chọn</p></div>;
+const Admin = () => <div style={{padding:'80px 60px'}}><h1>Trang Quản lý Admin</h1><p>Thêm/Xóa/Sửa sản phẩm và danh mục</p></div>;
 
 const { Content, Footer } = Layout;
 
@@ -45,6 +46,9 @@ function App() {
               <Route path='/cart' element={<Cart />} />
               <Route path='/admin' element={<Admin />} />
               <Route path='/demo' element={<BackgroundPaths title="FITMART" />} />
+              <Route path='/collections/*' element={<CollectionPage />} />
+              <Route path='/profile' element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
+              <Route path='/wishlist' element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
             </Routes>
           </Content>
           <Footer style={{ textAlign: 'center', background: '#ffffff', color: '#6e6e6e', borderTop: 'none' }}>

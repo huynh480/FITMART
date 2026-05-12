@@ -15,7 +15,7 @@
     "stock": 120,
     "isNew": true,
     "isBestSeller": false,
-    "imageUrl": "PLACEHOLDER",
+    "imageUrl": "images/products/images-ao-tank-top-tap-gym-legacy.webp",
     "slug": "ao-tank-top-tap-gym-legacy"
   },
   {
@@ -34,7 +34,7 @@
     "stock": 95,
     "isNew": false,
     "isBestSeller": true,
-    "imageUrl": "PLACEHOLDER",
+    "imageUrl": "images/products/images-Short.webp",
     "slug": "quan-short-chay-bo-studio"
   },
   {
@@ -850,7 +850,7 @@
     "stock": 65,
     "isNew": true,
     "isBestSeller": false,
-    "imageUrl": "PLACEHOLDER",
+    "imageUrl": "http://localhost:5049/images/products/images-SharkheadBackpackGSBlackI3A4R_BB2J8408_3840x.jpg",
     "slug": "balo-the-thao-legacy"
   },
   {
@@ -864,7 +864,7 @@
     "stock": 130,
     "isNew": false,
     "isBestSeller": false,
-    "imageUrl": "PLACEHOLDER",
+    "imageUrl": "images/products/images-SiliconeLiftingStrapsBlackI1B7J_BB2J_0014_V1a_1920x.webp",
     "slug": "day-nhay-cao-cap-studio"
   },
   {

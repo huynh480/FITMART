@@ -16,7 +16,7 @@ const HomePage = () => {
       try {
         const response = await fetch('http://localhost:5049/api/Products?pageSize=8');
         const data = await response.json();
-        
+
         if (data.items) {
           setProducts(data.items);
         }
@@ -53,20 +53,20 @@ const HomePage = () => {
 
         <Row gutter={[32, 32]}>
           {products.map((item) => {
-            const images = item.productVariants && item.productVariants.length > 0 
-                ? [...new Set(item.productVariants.map(v => v.imageUrl))]
-                : ['https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&q=80'];
+            const images = item.productVariants && item.productVariants.length > 0
+              ? [...new Set(item.productVariants.map(v => v.imageUrl))]
+              : ['https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&q=80'];
 
             return (
-            <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
-              <ProductCard
-                id={item.id}
-                image={images[0]}
-                productName={item.name}
-                collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
-                price={formatPrice(item.price)}
-              />
-            </Col>
+              <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
+                <ProductCard
+                  id={item.id}
+                  image={images[0]}
+                  productName={item.name}
+                  collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
+                  price={formatPrice(item.price)}
+                />
+              </Col>
             );
           })}
         </Row>
@@ -81,20 +81,20 @@ const HomePage = () => {
 
         <Row gutter={[32, 32]}>
           {products.filter(p => p.isFeatured).slice(0, 4).map((item) => {
-            const images = item.productVariants && item.productVariants.length > 0 
-                ? [...new Set(item.productVariants.map(v => v.imageUrl))]
-                : ['https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&q=80'];
-            
+            const images = item.productVariants && item.productVariants.length > 0
+              ? [...new Set(item.productVariants.map(v => v.imageUrl))]
+              : ['https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&q=80'];
+
             return (
-            <Col xs={24} sm={12} md={8} lg={6} key={`featured-${item.id}`}>
-              <ProductCard
-                id={item.id}
-                image={images[0]}
-                productName={item.name}
-                collectionName={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
-                price={formatPrice(item.price)}
-              />
-            </Col>
+              <Col xs={24} sm={12} md={8} lg={6} key={`featured-${item.id}`}>
+                <ProductCard
+                  id={item.id}
+                  image={images[0]}
+                  productName={item.name}
+                  collectionName={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
+                  price={formatPrice(item.price)}
+                />
+              </Col>
             );
           })}
         </Row>
