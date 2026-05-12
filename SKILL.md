@@ -43,6 +43,8 @@ concise, confident, implementation-focused
 - Do not allow low-contrast text or hidden focus indicators.
 - Do not introduce one-off spacing or typography exceptions.
 - Do not use ambiguous labels or non-descriptive actions.
+- Do not implement mobile or tablet responsive behavior. Desktop only.
+- Do not add accessibility beyond basic keyboard focus. This is a desktop demo project.
 
 ## Guideline Authoring Workflow
 1. Restate design intent in one sentence.

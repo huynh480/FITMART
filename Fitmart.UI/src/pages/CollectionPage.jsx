@@ -1,414 +1,128 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Select, Pagination } from 'antd';
+import { useParams } from 'react-router-dom';
+import { Pagination } from 'antd';
 import { ProductCard, ProductGrid } from '../components/ProductCard';
-
-const { Option } = Select;
+import CollectionHero from '../components/ui/CollectionHero';
+import FilterSidebar from '../components/ui/FilterSidebar';
+import { getCollectionConfig } from '../config/collectionConfig';
 
 const PAGE_SIZE = 24;
 const API_BASE = 'http://localhost:5049/api/Products';
+const FONT = "'Roboto','Helvetica',Arial,sans-serif";
 
-// ─── Category metadata ────────────────────────────────────────────────────────
-const CATEGORY_META = {
-  nam: { label: 'Nam', heroImage: '/mega_menu_nam.png', apiCategory: 'nam' },
-  nu: { label: 'Nữ', heroImage: '/mega_menu_nu.png', apiCategory: 'nu' },
-  'phu-kien': { label: 'Phụ kiện', heroImage: '/mega_menu_phukien.png', apiCategory: 'phu-kien' },
-};
+// ─── Filter state shape ───────────────────────────────────────────────────────
+// category, size, collection — Sets (multi-select)
+// price — string | null  (single-select radio)
+// sort  — string
+function emptyFilters() {
+  return { category: new Set(), size: new Set(), collection: new Set(), price: null };
+}
 
-// ─── Filter config (module-level constant — never re-created) ─────────────────
-const FILTER_CONFIG = [
-  {
-    key: 'category',
-    label: 'Danh mục',
-    options: [
-      { value: 'ao', label: 'Áo' },
-      { value: 'quan', label: 'Quần' },
-      { value: 'phu-kien', label: 'Phụ kiện' },
-    ],
-  },
-  {
-    key: 'size',
-    label: 'Kích cỡ',
-    options: [
-      { value: 'XS', label: 'XS' },
-      { value: 'S', label: 'S' },
-      { value: 'M', label: 'M' },
-      { value: 'L', label: 'L' },
-      { value: 'XL', label: 'XL' },
-      { value: 'XXL', label: 'XXL' },
-    ],
-  },
-  {
-    key: 'collection',
-    label: 'Bộ sưu tập',
-    options: [
-      { value: 'LEGACY', label: 'LEGACY' },
-      { value: 'STUDIO', label: 'STUDIO' },
-      { value: 'GS POWER', label: 'GS POWER' },
-      { value: 'EVERYDAY', label: 'EVERYDAY' },
-      { value: 'VITAL', label: 'VITAL' },
-    ],
-  },
-  {
-    key: 'price',
-    label: 'Giá',
-    options: [
-      { value: 'under300', label: 'Dưới 300K' },
-      { value: '300to700', label: '300K – 700K' },
-      { value: 'above700', label: 'Trên 700K' },
-    ],
-  },
-];
-
-const SORT_OPTIONS = [
-  { value: 'featured', label: 'Nổi bật nhất' },
-  { value: 'newest', label: 'Mới nhất' },
-  { value: 'price_asc', label: 'Giá thấp đến cao' },
-  { value: 'price_desc', label: 'Giá cao đến thấp' },
-];
-
-const EMPTY_FILTERS = { category: null, size: null, collection: null, price: null };
-
-// ─── Pure helpers (module-level, never re-created) ────────────────────────────
+// ─── Pure helpers ─────────────────────────────────────────────────────────────
 function formatPrice(price) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 }
 
 function getFirstImage(item) {
-  if (item.productVariants && item.productVariants.length > 0) {
-    const urls = [...new Set(item.productVariants.map((v) => v.imageUrl))];
+  const variants = item.productVariants || [];
+  if (variants.length > 0) {
+    const urls = [...new Set(variants.map((v) => v.imageUrl))].filter(Boolean);
     if (urls[0]) return urls[0];
   }
   return 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&q=80';
 }
 
-function priceInRange(price, rangeKey) {
-  if (!rangeKey) return true;
-  if (rangeKey === 'under300') return price < 300000;
-  if (rangeKey === '300to700') return price >= 300000 && price <= 700000;
-  if (rangeKey === 'above700') return price > 700000;
+function priceInRange(price, key) {
+  if (!key) return true;
+  if (key === 'under300') return price < 300000;
+  if (key === '300to700') return price >= 300000 && price <= 700000;
+  if (key === 'above700') return price > 700000;
   return true;
 }
 
-function applyFiltersAndSort(allProducts, filters, sort) {
-  let list = allProducts.slice(); // shallow copy, never mutate source
+function applyFilters(list, filters, sort) {
+  let out = list.slice();
 
-  if (filters.category) {
-    list = list.filter((p) => {
-      const cat = ((p.category || p.type) ?? '').toLowerCase();
-      const name = (p.name ?? '').toLowerCase();
-      if (filters.category === 'ao') {
-        return cat.includes('ao') || cat.includes('shirt') || cat.includes('top') || cat.includes('hoodie')
-          || name.includes('áo') || name.includes('hoodie') || name.includes('tank') || name.includes('bra');
+  // Category — multi-select, OR within set
+  if (filters.category.size > 0) {
+    out = out.filter((p) => {
+      // Defensive coercion: API may return arrays/objects for category
+      const rawCat = p.category || p.type;
+      const cat = (rawCat != null && typeof rawCat !== 'object' ? String(rawCat) : '').toLowerCase();
+      const name = (p.name != null ? String(p.name) : '').toLowerCase();
+      for (const sel of filters.category) {
+        const s = sel.toLowerCase();
+        if (cat.includes(s) || name.includes(s)) return true;
+        if (s === 'áo' && (cat.includes('ao') || name.includes('áo') || name.includes('shirt') || name.includes('top') || name.includes('hoodie') || name.includes('bra'))) return true;
+        if (s === 'quần' && (cat.includes('quan') || name.includes('quần') || name.includes('short') || name.includes('jogger') || name.includes('legging'))) return true;
       }
-      if (filters.category === 'quan') {
-        return cat.includes('quan') || cat.includes('short') || cat.includes('jogger') || cat.includes('legging')
-          || name.includes('quần') || name.includes('short') || name.includes('jogger') || name.includes('legging');
-      }
-      if (filters.category === 'phu-kien') {
-        return cat.includes('phu') || cat.includes('bag') || cat.includes('balo')
-          || name.includes('bag') || name.includes('túi') || name.includes('balo') || name.includes('găng') || name.includes('đai') || name.includes('vớ');
-      }
-      return true;
+      return false;
     });
   }
 
-  if (filters.size) {
-    list = list.filter((p) => {
+  // Size — multi-select, OR within set
+  if (filters.size.size > 0) {
+    out = out.filter((p) => {
       const sizes = (p.productVariants || []).map((v) => (v.size || '').toUpperCase());
-      return sizes.includes(filters.size);
+      for (const sz of filters.size) {
+        if (sizes.includes(sz)) return true;
+      }
+      return false;
     });
   }
 
-  if (filters.collection) {
-    list = list.filter((p) =>
-      ((p.collection || '')).toUpperCase().includes(filters.collection.toUpperCase())
-    );
+  // Collection — multi-select
+  if (filters.collection.size > 0) {
+    out = out.filter((p) => {
+      const col = (p.collection ?? '').toUpperCase();
+      for (const sel of filters.collection) {
+        if (col.includes(sel.toUpperCase())) return true;
+      }
+      return false;
+    });
   }
 
+  // Price — single
   if (filters.price) {
-    list = list.filter((p) => priceInRange(p.price, filters.price));
+    out = out.filter((p) => priceInRange(p.price, filters.price));
   }
 
-  if (sort === 'newest') {
-    list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  } else if (sort === 'price_asc') {
-    list.sort((a, b) => a.price - b.price);
-  } else if (sort === 'price_desc') {
-    list.sort((a, b) => b.price - a.price);
-  }
+  // Sort
+  if (sort === 'newest') out.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  else if (sort === 'price_asc') out.sort((a, b) => a.price - b.price);
+  else if (sort === 'price_desc') out.sort((a, b) => b.price - a.price);
 
-  return list;
+  return out;
 }
 
-// ─── CollectionHero ───────────────────────────────────────────────────────────
-function CollectionHero({ meta }) {
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '200px', overflow: 'hidden' }}>
-      <img
-        src={meta.heroImage}
-        alt={meta.label + ' banner'}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
-      />
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.56) 100%)',
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <h1 style={{
-          fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-          fontSize: '32px', fontWeight: 700,
-          color: '#ffffff', textTransform: 'uppercase',
-          letterSpacing: '4px', margin: 0,
-          textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        }}>
-          {meta.label.toUpperCase()}
-        </h1>
-      </div>
-    </div>
-  );
-}
-
-// ─── SimpleBreadcrumb ─────────────────────────────────────────────────────────
-function SimpleBreadcrumb({ label }) {
-  return (
-    <div style={{
-      padding: '12px 48px',
-      borderBottom: '1px solid #f0f0f0',
-      display: 'flex', alignItems: 'center', gap: '6px',
-      fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-      fontSize: '12px',
-    }}>
-      <Link to="/" style={{ color: '#6e6e6e', textDecoration: 'none' }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#1b1b1b')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#6e6e6e')}
-      >
-        Trang chủ
-      </Link>
-      <span style={{ color: '#b0b0b0' }}>›</span>
-      <span style={{ color: '#1b1b1b', fontWeight: 500 }}>{label}</span>
-    </div>
-  );
-}
-
-// ─── FilterSortBar ────────────────────────────────────────────────────────────
-function FilterSortBar({ filters, onFilterChange, sort, onSortChange }) {
-  return (
-    <div
-      id="filter-sort-bar"
-      style={{
-        position: 'sticky',
-        top: '76px',
-        zIndex: 90,
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e5e5e5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '8px',
-        padding: '10px 48px',
-      }}
-    >
-      {/* Left: filter dropdowns */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        {FILTER_CONFIG.map((fc) => (
-          <Select
-            key={fc.key}
-            id={'filter-' + fc.key}
-            placeholder={fc.label}
-            allowClear
-            value={filters[fc.key] || undefined}
-            onChange={(val) => onFilterChange(fc.key, val || null)}
-            onClear={() => onFilterChange(fc.key, null)}
-            style={{ minWidth: 130 }}
-            popupMatchSelectWidth={false}
-            aria-label={fc.label}
-          >
-            {fc.options.map((opt) => (
-              <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-            ))}
-          </Select>
-        ))}
-      </div>
-
-      {/* Right: sort */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{
-          fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-          fontSize: '13px', color: '#6e6e6e',
-        }}>
-          Sắp xếp:
-        </span>
-        <Select
-          id="sort-select"
-          value={sort}
-          onChange={onSortChange}
-          style={{ minWidth: 190 }}
-          popupMatchSelectWidth={false}
-          aria-label="Sắp xếp sản phẩm"
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-          ))}
-        </Select>
-      </div>
-    </div>
-  );
-}
-
-// ─── ActiveFilterChips ────────────────────────────────────────────────────────
-function ActiveFilterChips({ filters, onRemoveFilter, onClearAll }) {
-  const chips = [];
-  FILTER_CONFIG.forEach((fc) => {
-    if (filters[fc.key]) {
-      const opt = fc.options.find((o) => o.value === filters[fc.key]);
-      chips.push({ key: fc.key, filterLabel: fc.label, valueLabel: opt ? opt.label : filters[fc.key] });
-    }
-  });
-
-  if (chips.length === 0) return null;
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-      gap: '8px', padding: '10px 48px',
-      borderBottom: '1px solid #f0f0f0',
-      backgroundColor: '#fafafa',
-    }}>
-      {chips.map((chip) => (
-        <span key={chip.key} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          backgroundColor: '#1b1b1b', color: '#ffffff',
-          fontSize: '12px', fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-          padding: '3px 10px', borderRadius: '2px',
-        }}>
-          <span>{chip.filterLabel}: {chip.valueLabel}</span>
-          <button
-            type="button"
-            aria-label={'Xóa bộ lọc ' + chip.filterLabel + ': ' + chip.valueLabel}
-            onClick={() => onRemoveFilter(chip.key)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#ffffff', padding: '0', lineHeight: 1,
-              display: 'flex', alignItems: 'center',
-            }}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
-              <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </span>
-      ))}
-
-      <button
-        type="button"
-        onClick={onClearAll}
-        style={{
-          background: 'none', border: '1px solid #1b1b1b',
-          cursor: 'pointer', padding: '3px 12px',
-          fontSize: '12px', fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-          color: '#1b1b1b', borderRadius: '2px',
-          transition: 'background 125ms, color 125ms',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#1b1b1b'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#1b1b1b'; }}
-      >
-        Xóa bộ lọc
-      </button>
-    </div>
-  );
-}
-
-// ─── EmptyState ───────────────────────────────────────────────────────────────
+// ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({ onClear }) {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '80px 24px', textAlign: 'center',
-      }}
-    >
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"
-        style={{ marginBottom: '20px', opacity: 0.2 }} aria-hidden="true">
-        <rect x="6" y="6" width="36" height="36" rx="4" stroke="#1b1b1b" strokeWidth="2" />
-        <path d="M16 24h16M24 16v16" stroke="#1b1b1b" strokeWidth="2" strokeLinecap="round" />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ marginBottom: '16px', opacity: 0.2 }} aria-hidden="true">
+        <rect x="5" y="5" width="30" height="30" rx="3" stroke="#1b1b1b" strokeWidth="2" />
+        <path d="M13 20h14M20 13v14" stroke="#1b1b1b" strokeWidth="2" strokeLinecap="round" />
       </svg>
-      <p style={{
-        fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-        fontSize: '16px', fontWeight: 600, color: '#1b1b1b', margin: '0 0 8px',
-      }}>
-        Không tìm thấy sản phẩm phù hợp
-      </p>
-      <p style={{
-        fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-        fontSize: '13px', color: '#6e6e6e', margin: '0 0 24px',
-      }}>
-        Thử thay đổi bộ lọc hoặc xem tất cả sản phẩm
-      </p>
-      <button
-        type="button"
-        onClick={onClear}
-        style={{
-          backgroundColor: '#1b1b1b', color: '#ffffff',
-          border: 'none', cursor: 'pointer',
-          padding: '12px 32px',
-          fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-          fontSize: '13px', fontWeight: 600,
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#000')}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1b1b1b')}
-      >
+      <p style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 600, color: '#1b1b1b', margin: '0 0 6px' }}>Không tìm thấy sản phẩm phù hợp</p>
+      <p style={{ fontFamily: FONT, fontSize: '13px', color: '#6e6e6e', margin: '0 0 20px' }}>Thử thay đổi bộ lọc hoặc xóa tất cả</p>
+      <button type="button" onClick={onClear} style={{ backgroundColor: '#1b1b1b', color: '#fff', border: 'none', cursor: 'pointer', padding: '10px 28px', fontFamily: FONT, fontSize: '13px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
         Xóa bộ lọc
       </button>
     </div>
   );
 }
 
-// ─── Error Boundary ───────────────────────────────────────────────────────────
-class CollectionErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, errorMessage: '' };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, errorMessage: error?.message || 'Unknown error' };
-  }
-  componentDidCatch(error, info) {
-    console.error('[CollectionPage] Error:', error, info);
-  }
-  handleReset() {
-    this.setState({ hasError: false, errorMessage: '' });
-  }
+// ─── Error boundary ───────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  state = { err: null };
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { console.error('[CollectionPage]', e, info); }
   render() {
-    if (this.state.hasError) {
+    if (this.state.err) {
       return (
-        <div style={{
-          padding: '80px 48px', textAlign: 'center',
-          fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-        }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: '#1b1b1b', marginBottom: '8px' }}>
-            Có lỗi xảy ra khi tải trang
-          </p>
-          <p style={{ fontSize: '13px', color: '#6e6e6e', marginBottom: '24px' }}>
-            {this.state.errorMessage}
-          </p>
-          <button
-            onClick={() => this.handleReset()}
-            style={{
-              backgroundColor: '#1b1b1b', color: '#fff',
-              border: 'none', padding: '10px 28px',
-              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-            }}
-          >
-            Thử lại
-          </button>
+        <div style={{ padding: '60px', textAlign: 'center', fontFamily: FONT }}>
+          <p style={{ fontSize: '15px', color: '#1b1b1b', marginBottom: '8px' }}>Có lỗi xảy ra</p>
+          <p style={{ fontSize: '13px', color: '#6e6e6e' }}>{this.state.err.message}</p>
         </div>
       );
     }
@@ -416,48 +130,45 @@ class CollectionErrorBoundary extends React.Component {
   }
 }
 
-// ─── Main CollectionPage ──────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 function CollectionPageInner() {
   const { '*': slugPath } = useParams();
-  const slug = (slugPath || '').split('/')[0] || 'nam';
-  const meta = CATEGORY_META[slug] || CATEGORY_META['nam'];
+  const slug = (slugPath || '').replace(/^\//, '');
+  const config = getCollectionConfig(slug || 'nam');
+
+  // Derive parentSlug (top-level segment before first slash)
+  const parentSlug = slug.includes('/') ? slug.split('/')[0] : null;
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(emptyFilters);
   const [sort, setSort] = useState('featured');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const gridTopRef = useRef(null);
+  const gridRef = useRef(null);
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────
+  // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setAllProducts([]);
+    setFilters(emptyFilters());
+    setSort('featured');
     setCurrentPage(1);
-    setFilters(EMPTY_FILTERS);
 
     async function load() {
       try {
-        // Try category-scoped endpoint first
-        const r1 = await fetch(API_BASE + '?pageSize=200&category=' + meta.apiCategory);
-        if (!cancelled) {
-          if (r1.ok) {
-            const d = await r1.json();
-            setAllProducts(d.items ?? (Array.isArray(d) ? d : []));
-          } else {
-            // Fallback: fetch all
-            const r2 = await fetch(API_BASE + '?pageSize=200');
-            if (!cancelled && r2.ok) {
-              const d = await r2.json();
-              setAllProducts(d.items ?? (Array.isArray(d) ? d : []));
-            }
-          }
+        const r = await fetch(`${API_BASE}?pageSize=200&category=${config.apiCategory}`);
+        const d = await r.json();
+        if (!cancelled) setAllProducts(d.items ?? (Array.isArray(d) ? d : []));
+      } catch {
+        try {
+          const r2 = await fetch(`${API_BASE}?pageSize=200`);
+          const d2 = await r2.json();
+          if (!cancelled) setAllProducts(d2.items ?? (Array.isArray(d2) ? d2 : []));
+        } catch {
+          if (!cancelled) setAllProducts([]);
         }
-      } catch (err) {
-        console.error('CollectionPage fetch error:', err);
-        if (!cancelled) setAllProducts([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -465,41 +176,30 @@ function CollectionPageInner() {
 
     load();
     return () => { cancelled = true; };
-  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slug]); // eslint-disable-line
 
-  // ── Client-side filter + sort (memoized) ──────────────────────────────────
-  const processedProducts = useMemo(
-    () => applyFiltersAndSort(allProducts, filters, sort),
+  // ── Processed list ─────────────────────────────────────────────────────────
+  const processed = useMemo(
+    () => applyFilters(allProducts, filters, sort),
     [allProducts, filters, sort]
   );
+  const paginated = useMemo(() => {
+    const s = (currentPage - 1) * PAGE_SIZE;
+    return processed.slice(s, s + PAGE_SIZE);
+  }, [processed, currentPage]);
 
-  // ── Paginated slice ────────────────────────────────────────────────────────
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return processedProducts.slice(start, start + PAGE_SIZE);
-  }, [processedProducts, currentPage]);
-
-  // ── Stable callbacks ───────────────────────────────────────────────────────
-  const handleFilterChange = useCallback((key, value) => {
+  // ── Callbacks ──────────────────────────────────────────────────────────────
+  const handleFilterChange = useCallback((type, value) => {
     setFilters((prev) => {
-      const next = Object.assign({}, prev);
-      next[key] = value;
+      const next = { ...prev, category: new Set(prev.category), size: new Set(prev.size), collection: new Set(prev.collection) };
+      if (type === 'price') {
+        next.price = value; // single-select: value is new string or null
+      } else {
+        const s = next[type];
+        if (s.has(value)) s.delete(value); else s.add(value);
+      }
       return next;
     });
-    setCurrentPage(1);
-  }, []);
-
-  const handleRemoveFilter = useCallback((key) => {
-    setFilters((prev) => {
-      const next = Object.assign({}, prev);
-      next[key] = null;
-      return next;
-    });
-    setCurrentPage(1);
-  }, []);
-
-  const handleClearAll = useCallback(() => {
-    setFilters(EMPTY_FILTERS);
     setCurrentPage(1);
   }, []);
 
@@ -508,120 +208,101 @@ function CollectionPageInner() {
     setCurrentPage(1);
   }, []);
 
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-    if (gridTopRef.current) {
-      gridTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  const handleClearAll = useCallback(() => {
+    setFilters(emptyFilters());
+    setSort('featured');
+    setCurrentPage(1);
   }, []);
 
-  const hasActiveFilters = Object.values(filters).some(Boolean);
-  const totalCount = processedProducts.length;
-  const displayedCount = paginatedProducts.length;
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const hasActive = filters.category.size > 0 || filters.size.size > 0 || filters.collection.size > 0 || !!filters.price;
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-
-      {/* 1. Hero */}
-      <CollectionHero meta={meta} />
-
-      {/* 2. Breadcrumb */}
-      <SimpleBreadcrumb label={meta.label} />
-
-      {/* 3. Filter / Sort bar */}
-      <FilterSortBar
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        sort={sort}
-        onSortChange={handleSortChange}
-      />
-
-      {/* 4. Active filter chips */}
-      {hasActiveFilters && (
-        <ActiveFilterChips
-          filters={filters}
-          onRemoveFilter={handleRemoveFilter}
-          onClearAll={handleClearAll}
+      {/* Hero — text-only, inside page padding */}
+      <div style={{ padding: '0 48px' }}>
+        <CollectionHero
+          config={config}
+          productCount={loading ? 0 : allProducts.length}
+          parentSlug={parentSlug}
         />
-      )}
+      </div>
 
-      {/* 5. Content */}
-      <div ref={gridTopRef} style={{ padding: '32px 48px 80px' }}>
+      {/* 2-column layout */}
+      <div style={{ display: 'flex', gap: '0', padding: '32px 48px 80px', alignItems: 'flex-start' }}>
 
-        {/* Product count */}
-        {!loading && (
-          <p
-            id="product-count"
-            aria-live="polite"
-            aria-atomic="true"
-            style={{
-              fontFamily: "'Roboto','Helvetica',Arial,sans-serif",
-              fontSize: '12px', color: '#6e6e6e', marginBottom: '20px',
-            }}
-          >
-            {totalCount === 0
-              ? 'Không có sản phẩm'
-              : 'Hiển thị ' + displayedCount + '/' + totalCount + ' sản phẩm'}
-          </p>
-        )}
+        {/* LEFT: Sidebar */}
+        <FilterSidebar
+          config={config}
+          filters={filters}
+          sort={sort}
+          onFilterChange={handleFilterChange}
+          onSortChange={handleSortChange}
+          onClearAll={handleClearAll}
+          hasActiveFilters={hasActive}
+        />
 
-        {/* Loading — 8 skeletons */}
-        {loading && (
-          <ProductGrid>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <ProductCard key={'skel-' + i} isLoading />
-            ))}
-          </ProductGrid>
-        )}
+        {/* RIGHT: Grid */}
+        <div ref={gridRef} style={{ flex: 1, minWidth: 0, paddingLeft: '36px' }}>
+          {/* Count bar */}
+          {!loading && (
+            <p aria-live="polite" aria-atomic="true" style={{ fontFamily: FONT, fontSize: '12px', color: '#6e6e6e', marginBottom: '20px', marginTop: '0' }}>
+              {processed.length === 0
+                ? 'Không có sản phẩm'
+                : `Hiển thị ${paginated.length}/${processed.length} sản phẩm`}
+            </p>
+          )}
 
-        {/* Empty state */}
-        {!loading && processedProducts.length === 0 && (
-          <EmptyState onClear={handleClearAll} />
-        )}
+          {/* Loading skeletons */}
+          {loading && (
+            <ProductGrid>
+              {Array.from({ length: 8 }).map((_, i) => <ProductCard key={`sk-${i}`} isLoading />)}
+            </ProductGrid>
+          )}
 
-        {/* Product grid */}
-        {!loading && processedProducts.length > 0 && (
-          <ProductGrid>
-            {paginatedProducts.map((item) => (
-              <ProductCard
-                key={item.id}
-                id={item.id}
-                slug={item.slug || String(item.id)}
-                image={getFirstImage(item)}
-                productName={item.name}
-                collectionName={item.collection ? item.collection.toUpperCase() : meta.label.toUpperCase()}
-                price={formatPrice(item.price)}
-                isOutOfStock={item.stock === 0 || item.isOutOfStock === true}
+          {/* Empty state */}
+          {!loading && processed.length === 0 && <EmptyState onClear={handleClearAll} />}
+
+          {/* Products */}
+          {!loading && processed.length > 0 && (
+            <ProductGrid>
+              {paginated.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  id={item.id}
+                  slug={item.slug || String(item.id)}
+                  image={getFirstImage(item)}
+                  productName={item.name}
+                  collectionName={item.collection ? item.collection.toUpperCase() : config.name}
+                  price={formatPrice(item.price)}
+                  isOutOfStock={item.stock === 0 || item.isOutOfStock === true}
+                />
+              ))}
+            </ProductGrid>
+          )}
+
+          {/* Pagination */}
+          {!loading && processed.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '56px' }}>
+              <Pagination
+                current={currentPage}
+                total={processed.length}
+                pageSize={PAGE_SIZE}
+                onChange={handlePageChange}
+                showSizeChanger={false}
               />
-            ))}
-          </ProductGrid>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalCount > PAGE_SIZE && (
-          <div
-            style={{ display: 'flex', justifyContent: 'center', marginTop: '56px' }}
-            aria-label="Phân trang sản phẩm"
-          >
-            <Pagination
-              current={currentPage}
-              total={totalCount}
-              pageSize={PAGE_SIZE}
-              onChange={handlePageChange}
-              showSizeChanger={false}
-              showQuickJumper={false}
-            />
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export default function CollectionPage() {
-  return (
-    <CollectionErrorBoundary>
-      <CollectionPageInner />
-    </CollectionErrorBoundary>
-  );
+  return <ErrorBoundary><CollectionPageInner /></ErrorBoundary>;
 }
