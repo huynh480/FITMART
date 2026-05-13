@@ -3,7 +3,9 @@ import { Layout, ConfigProvider } from 'antd';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import CollectionPage from './pages/CollectionPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 import { BackgroundPaths } from './components/ui/background-paths';
+import { AuthProvider } from './hooks/useAuth';
 import './App.css';
 
 const Cart = () => <div style={{padding:'80px 60px'}}><h1>Giỏ hàng</h1><p>Các sản phẩm đã chọn</p></div>;
@@ -37,25 +39,28 @@ function App() {
         }
       }}
     >
-      <Router>
-        <Layout style={{ minHeight: '100vh', background: '#ffffff' }}>
-          <Navbar />
-          <Content style={{ flex: 1 }}>
-            <Routes>
-              <Route path='/' element={<HomePage />} />
-              <Route path='/cart' element={<Cart />} />
-              <Route path='/admin' element={<Admin />} />
-              <Route path='/demo' element={<BackgroundPaths title="FITMART" />} />
-              <Route path='/collections/*' element={<CollectionPage />} />
-              <Route path='/profile' element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
-              <Route path='/wishlist' element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
-            </Routes>
-          </Content>
-          <Footer style={{ textAlign: 'center', background: '#ffffff', color: '#6e6e6e', borderTop: 'none' }}>
-            FITMART ©{new Date().getFullYear()} Created with React & Ant Design
-          </Footer>
-        </Layout>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <Layout style={{ minHeight: '100vh', background: '#ffffff' }}>
+            <Navbar />
+            <Content style={{ flex: 1 }}>
+              <Routes>
+                <Route path='/' element={<HomePage />} />
+                <Route path='/cart' element={<Cart />} />
+                <Route path='/admin' element={<Admin />} />
+                <Route path='/demo' element={<BackgroundPaths title="FITMART" />} />
+                <Route path='/collections/*' element={<CollectionPage />} />
+                <Route path='/products/:slug' element={<ProductDetailPage />} />
+                <Route path='/profile' element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
+                <Route path='/wishlist' element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
+              </Routes>
+            </Content>
+            <Footer style={{ textAlign: 'center', background: '#ffffff', color: '#6e6e6e', borderTop: 'none' }}>
+              FITMART ©{new Date().getFullYear()} Created with React & Ant Design
+            </Footer>
+          </Layout>
+        </Router>
+      </AuthProvider>
     </ConfigProvider>
   );
 }

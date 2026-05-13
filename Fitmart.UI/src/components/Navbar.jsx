@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Badge, Drawer, Collapse } from 'antd';
+import { Badge, Drawer, Collapse, Dropdown } from 'antd';
 import {
   ShoppingCartOutlined,
   UserOutlined,
@@ -10,6 +10,8 @@ import {
   CloseOutlined,
 } from '@ant-design/icons';
 import navMenuData from '../config/navMenuData';
+import AuthModal from './ui/AuthModal';
+import { useAuth } from '../hooks/useAuth';
 
 const { Panel } = Collapse;
 
@@ -78,10 +80,11 @@ const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) =
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    padding: '9px 20px 9px 24px',
+    padding: '10px 16px',
     cursor: 'pointer',
     fontFamily: "'Roboto', 'Helvetica', Arial, sans-serif",
-    fontSize: '14px',
+    fontSize: '15px',
+    letterSpacing: '0.3px',
     fontWeight: isActive ? 600 : 400,
     color: '#1b1b1b',
     backgroundColor: isActive ? '#f7f7f7' : 'transparent',
@@ -168,10 +171,10 @@ const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) =
         <p
           style={{
             fontSize: '11px',
-            fontWeight: 700,
+            fontWeight: 600,
             color: '#6e6e6e',
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            letterSpacing: '1.5px',
             marginTop: 0,
             marginBottom: '16px',
             fontFamily: "'Roboto', 'Helvetica', Arial, sans-serif",
@@ -199,20 +202,22 @@ const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) =
                 onClick={onLinkClick}
                 style={{
                   fontSize: '14px',
-                  color: '#6e6e6e',
+                  color: '#1b1b1b',
                   textDecoration: 'none',
-                  lineHeight: '1.5',
+                  lineHeight: '2',
+                  padding: '4px 0',
                   fontFamily: "'Roboto', 'Helvetica', Arial, sans-serif",
-                  transition: 'color 125ms ease-in-out',
+                  transition: 'opacity 200ms ease',
                   display: 'inline-block',
+                  opacity: 1,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#1b1b1b';
+                  e.currentTarget.style.opacity = '0.6';
                   e.currentTarget.style.textDecoration = 'underline';
                   e.currentTarget.style.textUnderlineOffset = '3px';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#6e6e6e';
+                  e.currentTarget.style.opacity = '1';
                   e.currentTarget.style.textDecoration = 'none';
                 }}
               >
@@ -320,6 +325,9 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const { user, isAuthenticated, logout } = useAuth();
 
   const closeTimerRef = useRef(null);
   const navItemRefs = useRef({});
@@ -399,6 +407,24 @@ const Navbar = () => {
     clearTimeout(closeTimerRef.current);
     setActiveMenu(null);
   };
+
+  const userMenuItems = [
+    {
+      key: 'user-info',
+      label: <div style={{ fontWeight: 600, padding: '4px 0', fontSize: '14px' }}>Xin chào, {user?.name?.split(' ').pop() || user?.name}</div>,
+      disabled: true,
+      style: { cursor: 'default', color: '#1b1b1b' }
+    },
+    { type: 'divider' },
+    {
+      key: 'orders',
+      label: <Link to="/profile" style={{ fontSize: '14px' }}>Đơn hàng của tôi</Link>,
+    },
+    {
+      key: 'logout',
+      label: <div onClick={logout} style={{ fontSize: '14px' }}>Đăng xuất</div>,
+    },
+  ];
 
   return (
     <>
@@ -481,18 +507,23 @@ const Navbar = () => {
                       letterSpacing: '0.5px',
                       lineHeight: '76px',
                       textDecoration: 'none',
-                      borderBottom: isActive ? '2px solid #1b1b1b' : '2px solid transparent',
-                      paddingBottom: isActive ? '0' : '0',
                       outline: 'none',
                       // Focus-visible ring (WCAG 2.2)
                       boxShadow: 'none',
-                      transition: 'border-color 125ms ease-in-out',
+                      transition: 'opacity 200ms ease',
+                      opacity: (activeMenu && activeMenu !== item.id) ? 0.4 : 1,
                     }}
                     onFocus={() => setActiveMenu(item.id)}
                     onBlur={handleNavItemLeave}
                     className={`nav-item-btn${isActive ? ' nav-item-btn--active' : ''}`}
                   >
-                    {item.label}
+                    <span style={{ 
+                      borderBottom: isActive ? '2px solid #1b1b1b' : '2px solid transparent', 
+                      paddingBottom: '2px',
+                      transition: 'border-color 200ms ease'
+                    }}>
+                      {item.label}
+                    </span>
                   </button>
                 );
               })
@@ -536,14 +567,26 @@ const Navbar = () => {
               <SearchOutlined className="nav-icon" style={{ fontSize: '22px' }} />
             </button>
 
-            <Link
-              to="/profile"
-              id="nav-account-link"
-              aria-label="Tài khoản của tôi"
-              style={{ display: 'flex', alignItems: 'center', color: '#1b1b1b' }}
-            >
-              <UserOutlined className="nav-icon" style={{ fontSize: '22px' }} />
-            </Link>
+            {isAuthenticated ? (
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
+                <button
+                  id="nav-account-btn"
+                  aria-label="Tài khoản của tôi"
+                  style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#1b1b1b' }}
+                >
+                  <UserOutlined className="nav-icon" style={{ fontSize: '22px' }} />
+                </button>
+              </Dropdown>
+            ) : (
+              <button
+                id="nav-account-btn"
+                aria-label="Đăng nhập"
+                onClick={() => setAuthModalOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#1b1b1b' }}
+              >
+                <UserOutlined className="nav-icon" style={{ fontSize: '22px' }} />
+              </button>
+            )}
 
             <Link
               to="/wishlist"
@@ -692,15 +735,15 @@ const Navbar = () => {
         </Collapse>
       </Drawer>
 
+      {/* Auth Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+
       {/* ── Focus-visible styles injected globally for nav buttons ── */}
       <style>{`
         .nav-item-btn:focus-visible {
           outline: 2px solid #1b1b1b;
           outline-offset: 4px;
           border-radius: 2px;
-        }
-        .nav-item-btn--active {
-          border-bottom-color: #1b1b1b !important;
         }
         .nav-icon {
           color: #1b1b1b !important;

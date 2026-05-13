@@ -61,6 +61,7 @@ const HomePage = () => {
               <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
                 <ProductCard
                   id={item.id}
+                  slug={item.slug || 'ao-the-thao-nam'}
                   image={images[0]}
                   productName={item.name}
                   collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
@@ -89,6 +90,7 @@ const HomePage = () => {
               <Col xs={24} sm={12} md={8} lg={6} key={`featured-${item.id}`}>
                 <ProductCard
                   id={item.id}
+                  slug={item.slug || 'ao-the-thao-nam'}
                   image={images[0]}
                   productName={item.name}
                   collectionName={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
