@@ -10,7 +10,6 @@ import {
   CloseOutlined,
 } from '@ant-design/icons';
 import navMenuData from '../config/navMenuData';
-import AuthModal from './ui/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 
 const { Panel } = Collapse;
@@ -325,7 +324,6 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const { user, isAuthenticated, logout } = useAuth();
 
@@ -578,14 +576,14 @@ const Navbar = () => {
                 </button>
               </Dropdown>
             ) : (
-              <button
+              <Link
+                to="/login"
                 id="nav-account-btn"
                 aria-label="Đăng nhập"
-                onClick={() => setAuthModalOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#1b1b1b' }}
               >
                 <UserOutlined className="nav-icon" style={{ fontSize: '22px' }} />
-              </button>
+              </Link>
             )}
 
             <Link
@@ -734,9 +732,6 @@ const Navbar = () => {
           ))}
         </Collapse>
       </Drawer>
-
-      {/* Auth Modal */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
 
       {/* ── Focus-visible styles injected globally for nav buttons ── */}
       <style>{`
