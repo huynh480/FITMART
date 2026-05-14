@@ -515,8 +515,8 @@ const Navbar = () => {
                     onBlur={handleNavItemLeave}
                     className={`nav-item-btn${isActive ? ' nav-item-btn--active' : ''}`}
                   >
-                    <span style={{ 
-                      borderBottom: isActive ? '2px solid #1b1b1b' : '2px solid transparent', 
+                    <span style={{
+                      borderBottom: isActive ? '2px solid #1b1b1b' : '2px solid transparent',
                       paddingBottom: '2px',
                       transition: 'border-color 200ms ease'
                     }}>

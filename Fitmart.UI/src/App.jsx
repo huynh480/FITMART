@@ -13,7 +13,9 @@ import './App.css';
 const Cart = () => <div style={{padding:'80px 60px'}}><h1>Giỏ hàng</h1><p>Các sản phẩm đã chọn</p></div>;
 const Admin = () => <div style={{padding:'80px 60px'}}><h1>Trang Quản lý Admin</h1><p>Thêm/Xóa/Sửa sản phẩm và danh mục</p></div>;
 
-const { Content, Footer } = Layout;
+import Footer from './components/Footer';
+
+const { Content } = Layout;
 
 function AppLayout() {
   const location = useLocation();
@@ -37,9 +39,7 @@ function AppLayout() {
         </Routes>
       </Content>
       {!isAuthPage && (
-        <Footer style={{ textAlign: 'center', background: '#ffffff', color: '#6e6e6e', borderTop: 'none' }}>
-          FITMART ©{new Date().getFullYear()} Created with React & Ant Design
-        </Footer>
+        <Footer />
       )}
     </Layout>
   );
