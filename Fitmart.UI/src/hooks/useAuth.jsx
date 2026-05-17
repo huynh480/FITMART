@@ -1,35 +1,38 @@
-import React, { useState, useContext, createContext, useEffect } from 'react';
+import React, { useState, useContext, createContext } from 'react';
 import authConfig from '../config/authConfig';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    // Kiểm tra token khi khởi tạo ứng dụng
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-        setIsAuthenticated(true);
-      } catch (e) {
-        console.error('Lỗi parse user từ localStorage', e);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+  /* ── Khởi tạo state đồng bộ từ localStorage để tránh flash redirect ── */
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
     }
-  }, []);
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!(localStorage.getItem('token') && localStorage.getItem('user'));
+  });
 
   const login = async (email, password) => {
     try {
       // Giả lập API call (mocking vì chưa có backend)
       return new Promise((resolve) => {
         setTimeout(() => {
-          if (email === 'test@fitmart.vn' && password === '123456') {
-            const mockUser = { id: 1, name: 'Nguyễn Văn Test', email };
+          // Admin account
+          if (email === 'admin@fitmart.vn' && password === 'admin123') {
+            const mockUser = { id: 0, name: 'Admin FITMART', email, role: 'admin' };
+            localStorage.setItem('token', 'mock_jwt_token_admin');
+            localStorage.setItem('user', JSON.stringify(mockUser));
+            setUser(mockUser);
+            setIsAuthenticated(true);
+            resolve({ success: true });
+          // Regular user account
+          } else if (email === 'test@fitmart.vn' && password === '123456') {
+            const mockUser = { id: 1, name: 'Nguyễn Văn Test', email, role: 'user' };
             localStorage.setItem('token', 'mock_jwt_token_abc123');
             localStorage.setItem('user', JSON.stringify(mockUser));
             setUser(mockUser);
