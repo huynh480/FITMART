@@ -8,6 +8,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { BackgroundPaths } from './components/ui/background-paths';
 import { AuthProvider } from './hooks/useAuth';
+import { CartProvider } from './hooks/useCart';
+import CartDrawer from './components/ui/CartDrawer';
 import './App.css';
 
 /* ── Admin pages ── */
@@ -18,7 +20,7 @@ import OrdersPage from './pages/admin/OrdersPage';
 import UsersPage from './pages/admin/UsersPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 
-const Cart = () => <div style={{padding:'80px 60px'}}><h1>Giỏ hàng</h1><p>Các sản phẩm đã chọn</p></div>;
+
 
 import Footer from './components/Footer';
 
@@ -35,6 +37,7 @@ function StorefrontLayout() {
   return (
     <Layout style={{ minHeight: '100vh', background: '#ffffff' }}>
       {!isAuthPage && <Navbar />}
+      {!isAuthPage && <CartDrawer />}
       <Content style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </Content>
@@ -70,6 +73,7 @@ function App() {
       }}
     >
       <AuthProvider>
+       <CartProvider>
         <Router>
           <Routes>
             {/* ── Admin routes ── */}
@@ -86,7 +90,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/cart" element={<Cart />} />
+
               <Route path="/demo" element={<BackgroundPaths title="FITMART" />} />
               <Route path="/collections/*" element={<CollectionPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
@@ -95,6 +99,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
+       </CartProvider>
       </AuthProvider>
     </ConfigProvider>
   );

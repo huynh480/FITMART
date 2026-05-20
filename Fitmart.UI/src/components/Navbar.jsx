@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import navMenuData from '../config/navMenuData';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../hooks/useCart';
 
 const { Panel } = Collapse;
 
@@ -326,6 +327,7 @@ const Navbar = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const { user, isAuthenticated, logout } = useAuth();
+  const { totalItems, openCart } = useCart();
 
   const closeTimerRef = useRef(null);
   const navItemRefs = useRef({});
@@ -595,21 +597,22 @@ const Navbar = () => {
               <HeartOutlined className="nav-icon" style={{ fontSize: '22px' }} />
             </Link>
 
-            <Link
-              to="/cart"
-              id="nav-cart-link"
-              aria-label="Giỏ hàng (2 sản phẩm)"
-              style={{ display: 'flex', alignItems: 'center', color: '#1b1b1b' }}
+            <button
+              id="nav-cart-btn"
+              aria-label={`Giỏ hàng (${totalItems} sản phẩm)`}
+              onClick={openCart}
+              style={{ display: 'flex', alignItems: 'center', color: '#1b1b1b', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
             >
               <Badge
-                count={2}
+                count={totalItems}
                 size="small"
                 style={{ backgroundColor: '#1b1b1b', color: '#ffffff', fontWeight: 700 }}
                 offset={[-2, 4]}
+                showZero={false}
               >
                 <ShoppingCartOutlined className="nav-icon" style={{ fontSize: '22px' }} />
               </Badge>
-            </Link>
+            </button>
           </div>
         </header>
 

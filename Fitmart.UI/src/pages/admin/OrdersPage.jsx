@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Table, Input, Select, Modal, Descriptions, Divider, Tag, message } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Table, Input, Select, Modal, Descriptions, Divider, Spin, Alert, message } from 'antd';
+import { SearchOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ordersApi } from '../../services/api';
 
 const { Option } = Select;
 
@@ -130,10 +131,28 @@ const formatVND = (v) => v.toLocaleString('vi-VN') + ' ₫';
  * OrdersPage — /admin/orders
  */
 export default function OrdersPage() {
-  const [orders, setOrders] = useState(initialOrders);
-  const [search, setSearch] = useState('');
+  // Dùng mock data làm fallback — sẵn sàng swap khi API có GET /api/orders (admin)
+  const [orders, setOrders]           = useState(initialOrders);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
+  const [search, setSearch]           = useState('');
   const [filterStatus, setFilterStatus] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
+
+  /* ── Fetch orders (stub — replace when backend has GET /api/orders) ── */
+  const fetchOrders = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await ordersApi.getAll();
+      // Nếu API trả về dữ liệu thật thì dùng, còn không giữ mock
+      if (Array.isArray(data) && data.length > 0) setOrders(data);
+    } catch (e) {
+      // Không hiện lỗi nếu endpoint chưa có — dùng mock data
+      console.warn('Orders API chưa sẵn sàng, dùng mock data:', e.message);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   /* ── Filtered data ── */
   const filteredOrders = useMemo(() => {
@@ -148,15 +167,19 @@ export default function OrdersPage() {
   }, [orders, search, filterStatus]);
 
   /* ── Change status ── */
-  const handleChangeStatus = (orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
-    // Also update modal if open
-    if (detailModal?.id === orderId) {
-      setDetailModal((prev) => ({ ...prev, status: newStatus }));
+  const handleChangeStatus = async (orderId, newStatus) => {
+    try {
+      await ordersApi.updateStatus(orderId, newStatus); // stub → real PUT khi có API
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+      if (detailModal?.id === orderId) {
+        setDetailModal((prev) => ({ ...prev, status: newStatus }));
+      }
+      message.success('Cập nhật trạng thái thành công!');
+    } catch (e) {
+      message.error(`Lỗi cập nhật trạng thái: ${e.message}`);
     }
-    message.success('Cập nhật trạng thái thành công!');
   };
 
   /* ── Table columns ── */
@@ -233,13 +256,12 @@ export default function OrdersPage() {
 
   return (
     <>
-      {/* Header */}
       <div className="admin-content__header">
         <h1 className="admin-content__title">Quản lý đơn hàng</h1>
-        <p className="admin-content__subtitle">
-          {orders.length} đơn hàng trong hệ thống
-        </p>
+        <p className="admin-content__subtitle">{orders.length} đơn hàng trong hệ thống</p>
       </div>
+
+      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
       {/* Filters */}
       <div className="admin-products__filters">
@@ -263,15 +285,11 @@ export default function OrdersPage() {
         </Select>
       </div>
 
-      {/* Table */}
       <div className="admin-products__table-wrap">
-        <Table
-          columns={columns}
-          dataSource={filteredOrders}
-          rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-          size="middle"
-        />
+        <Spin spinning={loading} indicator={<LoadingOutlined />}>
+          <Table columns={columns} dataSource={filteredOrders} rowKey="id"
+            pagination={{ pageSize: 10, showSizeChanger: false }} size="middle" />
+        </Spin>
       </div>
 
       {/* Detail Modal */}

@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Table, Input, Select, Modal, Switch, message, Avatar } from 'antd';
-import { SearchOutlined, UserOutlined, ExclamationCircleFilled } from '@ant-design/icons';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Table, Input, Select, Modal, Switch, message, Avatar, Spin, Alert } from 'antd';
+import { SearchOutlined, UserOutlined, ExclamationCircleFilled, LoadingOutlined } from '@ant-design/icons';
+import { usersApi } from '../../services/api';
 
 const { Option } = Select;
 const { confirm } = Modal;
@@ -103,9 +104,24 @@ const initialUsers = [
  * UsersPage — /admin/users
  */
 export default function UsersPage() {
-  const [users, setUsers] = useState(initialUsers);
-  const [search, setSearch] = useState('');
+  const [users, setUsers]       = useState(initialUsers);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [search, setSearch]     = useState('');
   const [filterRole, setFilterRole] = useState(null);
+
+  /* ── Fetch users (stub — sẵn sàng khi backend có GET /api/users) ── */
+  const fetchUsers = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await usersApi.getAll();
+      if (Array.isArray(data) && data.length > 0) setUsers(data);
+    } catch (e) {
+      console.warn('Users API chưa sẵn sàng, dùng mock data:', e.message);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   /* ── Filtered data ── */
   const filteredUsers = useMemo(() => {
@@ -120,38 +136,40 @@ export default function UsersPage() {
   }, [users, search, filterRole]);
 
   /* ── Change role ── */
-  const handleChangeRole = (userId, newRole) => {
-    // PUT /api/users/:id/role
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
-    );
-    message.success('Đã cập nhật role!');
+  const handleChangeRole = async (userId, newRole) => {
+    try {
+      await usersApi.updateRole(userId, newRole);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+      message.success('Đã cập nhật role!');
+    } catch (e) {
+      message.error(`Lỗi: ${e.message}`);
+    }
   };
 
-  /* ── Toggle active status ── */
+  /* ── Toggle active ── */
   const handleToggleActive = (user) => {
     if (user.active) {
-      // Confirm before locking
       confirm({
         title: 'Xác nhận khoá tài khoản',
         icon: <ExclamationCircleFilled />,
-        content: `Bạn chắc chắn muốn khoá tài khoản "${user.name}"? Người dùng sẽ không thể đăng nhập.`,
-        okText: 'Khoá',
-        cancelText: 'Huỷ',
+        content: `Bạn chắc chắn muốn khoá tài khoản "${user.name}"?`,
+        okText: 'Khoá', cancelText: 'Huỷ',
         okButtonProps: { danger: true },
-        onOk() {
-          setUsers((prev) =>
-            prev.map((u) => (u.id === user.id ? { ...u, active: false } : u))
-          );
-          message.success(`Đã khoá tài khoản ${user.name}`);
+        async onOk() {
+          try {
+            await usersApi.updateStatus(user.id, 'locked');
+            setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, active: false } : u)));
+            message.success(`Đã khoá tài khoản ${user.name}`);
+          } catch (e) { message.error(`Lỗi: ${e.message}`); }
         },
       });
     } else {
-      // Unlock directly
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, active: true } : u))
-      );
-      message.success(`Đã mở khoá tài khoản ${user.name}`);
+      usersApi.updateStatus(user.id, 'active')
+        .then(() => {
+          setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, active: true } : u)));
+          message.success(`Đã mở khoá tài khoản ${user.name}`);
+        })
+        .catch((e) => message.error(`Lỗi: ${e.message}`));
     }
   };
 
@@ -258,36 +276,23 @@ export default function UsersPage() {
         </p>
       </div>
 
+      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
+
       {/* Filters */}
       <div className="admin-products__filters">
-        <Input
-          placeholder="Tìm theo tên hoặc email..."
-          prefix={<SearchOutlined style={{ color: '#bdbdbd' }} />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          allowClear
-        />
-        <Select
-          placeholder="Role"
-          value={filterRole}
-          onChange={setFilterRole}
-          allowClear
-          style={{ width: 140 }}
-        >
+        <Input placeholder="Tìm theo tên hoặc email..." prefix={<SearchOutlined style={{ color: '#bdbdbd' }} />}
+          value={search} onChange={(e) => setSearch(e.target.value)} allowClear />
+        <Select placeholder="Role" value={filterRole} onChange={setFilterRole} allowClear style={{ width: 140 }}>
           <Option value="admin">Admin</Option>
           <Option value="user">User</Option>
         </Select>
       </div>
 
-      {/* Table */}
       <div className="admin-products__table-wrap">
-        <Table
-          columns={columns}
-          dataSource={filteredUsers}
-          rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-          size="middle"
-        />
+        <Spin spinning={loading} indicator={<LoadingOutlined />}>
+          <Table columns={columns} dataSource={filteredUsers} rowKey="id"
+            pagination={{ pageSize: 10, showSizeChanger: false }} size="middle" />
+        </Spin>
       </div>
     </>
   );

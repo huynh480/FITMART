@@ -6,6 +6,7 @@ import { ColorSwatch } from '../components/ui/ColorSwatch';
 import { SizeSelector } from '../components/ui/SizeSelector';
 import { QuantityInput } from '../components/ui/QuantityInput';
 import { ProductCard } from '../components/ProductCard';
+import { useCart } from '../hooks/useCart';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -18,6 +19,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = React.useState(1);
   const [isAdding, setIsAdding] = React.useState(false);
   const [addSuccess, setAddSuccess] = React.useState(false);
+  const { addToCart, openCart } = useCart();
 
   // Derive active color images
   const activeColor = product.colors.find((c) => c.id === selectedColorId) || product.colors[0];
@@ -27,14 +29,16 @@ export default function ProductDetailPage() {
     if (!selectedSize || isAdding || addSuccess) return;
     
     setIsAdding(true);
-    // Simulate API call
+    // Small delay to show spinner, then add to cart + open drawer
     setTimeout(() => {
+      addToCart(product, selectedSize, activeColor, quantity);
       setIsAdding(false);
       setAddSuccess(true);
+      openCart();
       
       // Reset success state after 1.5s
       setTimeout(() => setAddSuccess(false), 1500);
-    }, 800);
+    }, 400);
   };
 
   return (
