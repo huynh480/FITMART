@@ -5,6 +5,7 @@ import { ProductCard, ProductGrid } from '../components/ProductCard';
 import CollectionHero from '../components/ui/CollectionHero';
 import FilterSidebar from '../components/ui/FilterSidebar';
 import { getCollectionConfig } from '../config/collectionConfig';
+import { categoriesApi } from '../services/api';
 
 const PAGE_SIZE = 24;
 const API_BASE = 'http://localhost:5049/api/Products';
@@ -134,10 +135,32 @@ class ErrorBoundary extends React.Component {
 function CollectionPageInner() {
   const { '*': slugPath } = useParams();
   const slug = (slugPath || '').replace(/^\//, '');
+
+  // Config tĩnh — vẫn dùng để lấy apiCategory, filters, relatedTags
   const config = getCollectionConfig(slug || 'nam');
 
   // Derive parentSlug (top-level segment before first slash)
   const parentSlug = slug.includes('/') ? slug.split('/')[0] : null;
+
+  // ── Dữ liệu danh mục từ API (name + description) ──────────────────────────
+  // apiCategory là slug top-level (nam / nu / phu-kien…) — dùng để query
+  const topSlug = slug.includes('/') ? slug.split('/')[0] : slug;
+  const [apiCategory, setApiCategory] = useState(null); // { name, description } | null
+
+  useEffect(() => {
+    let cancelled = false;
+    categoriesApi.getBySlug(topSlug)
+      .then((cat) => { if (!cancelled && cat) setApiCategory(cat); })
+      .catch(() => {/* bỏ qua — fallback về config tĩnh */});
+    return () => { cancelled = true; };
+  }, [topSlug]);
+
+  // Config hiển thị: ưu tiên dữ liệu từ API, fallback về config tĩnh
+  const displayConfig = useMemo(() => ({
+    ...config,
+    name: apiCategory?.name?.toUpperCase() ?? config.name,
+    description: apiCategory?.description ?? config.description,
+  }), [config, apiCategory]);
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +170,7 @@ function CollectionPageInner() {
 
   const gridRef = useRef(null);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Fetch sản phẩm ────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -223,10 +246,10 @@ function CollectionPageInner() {
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-      {/* Hero — text-only, inside page padding */}
+      {/* Hero — dùng displayConfig: name+description từ API, fallback về config tĩnh */}
       <div style={{ padding: '0 48px' }}>
         <CollectionHero
-          config={config}
+          config={displayConfig}
           productCount={loading ? 0 : allProducts.length}
           parentSlug={parentSlug}
         />
@@ -237,7 +260,7 @@ function CollectionPageInner() {
 
         {/* LEFT: Sidebar */}
         <FilterSidebar
-          config={config}
+          config={displayConfig}
           filters={filters}
           sort={sort}
           onFilterChange={handleFilterChange}

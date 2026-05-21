@@ -11,17 +11,50 @@ namespace Fitmart.API.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IWebHostEnvironment _env;
 
-    public ProductsController(ApplicationDbContext context)
+    public ProductsController(ApplicationDbContext context, IWebHostEnvironment env)
     {
         _context = context;
+        _env = env;
+    }
+
+    // POST: api/Products/upload-image
+    // Nhận file ảnh multipart/form-data, lưu vào wwwroot/images/products/
+    // Trả về { "imageUrl": "/images/products/abc123.jpg" }
+    [HttpPost("upload-image")]
+    public async Task<IActionResult> UploadImage(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Không có file ảnh được gửi lên." });
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            return BadRequest(new { message = "Chỉ chấp nhận file ảnh (jpg, png, webp, gif)." });
+
+        // Tạo thư mục nếu chưa có
+        var folder = Path.Combine(_env.WebRootPath, "images", "products");
+        Directory.CreateDirectory(folder);
+
+        // Tên file: GUID + extension gốc (tránh trùng)
+        var ext = Path.GetExtension(file.FileName).ToLower();
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(folder, fileName);
+
+        using (var stream = System.IO.File.Create(filePath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var imageUrl = $"/images/products/{fileName}";
+        return Ok(new { imageUrl });
     }
 
     // GET: api/Products
     [HttpGet]
     public async Task<ActionResult> GetProducts(
-        [FromQuery] int page = 1, 
-        [FromQuery] int pageSize = 10, 
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
         [FromQuery] string? gender = null,
         [FromQuery] string? collection = null,
         [FromQuery] int? categoryId = null)
@@ -33,19 +66,12 @@ public class ProductsController : ControllerBase
                 .Include(p => p.ProductVariants)
                 .AsQueryable();
 
-            // Lọc theo các tiêu chí (Gender, Collection, Category)
             if (categoryId.HasValue)
-            {
                 query = query.Where(p => p.CategoryId == categoryId.Value);
-            }
             if (!string.IsNullOrEmpty(gender))
-            {
                 query = query.Where(p => p.Gender == gender);
-            }
             if (!string.IsNullOrEmpty(collection))
-            {
                 query = query.Where(p => p.Collection == collection);
-            }
 
             var totalItems = await query.CountAsync();
 
@@ -57,7 +83,7 @@ public class ProductsController : ControllerBase
 
             var productDtos = products.Select(p => MapToProductDto(p)).ToList();
 
-            return Ok(new 
+            return Ok(new
             {
                 totalItems,
                 page,
@@ -87,7 +113,6 @@ public class ProductsController : ControllerBase
                 .ToListAsync();
 
             var productDtos = products.Select(p => MapToProductDto(p)).ToList();
-
             return Ok(productDtos);
         }
         catch (Exception ex)
@@ -108,9 +133,7 @@ public class ProductsController : ControllerBase
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
-            {
                 return NotFound(new { message = "Không tìm thấy sản phẩm." });
-            }
 
             return Ok(MapToProductDto(product));
         }
@@ -128,9 +151,7 @@ public class ProductsController : ControllerBase
         {
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
             if (!categoryExists)
-            {
                 return BadRequest(new { message = "Danh mục không tồn tại." });
-            }
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -148,17 +169,13 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> PutProduct(int id, Product product)
     {
         if (id != product.Id)
-        {
             return BadRequest(new { message = "ID sản phẩm không hợp lệ." });
-        }
 
         try
         {
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
             if (!categoryExists)
-            {
                 return BadRequest(new { message = "Danh mục không hợp lệ." });
-            }
 
             _context.Entry(product).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -166,13 +183,8 @@ public class ProductsController : ControllerBase
         catch (DbUpdateConcurrencyException)
         {
             if (!ProductExists(id))
-            {
                 return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            throw;
         }
         catch (Exception ex)
         {
@@ -190,9 +202,7 @@ public class ProductsController : ControllerBase
         {
             var product = await _context.Products.FindAsync(id);
             if (product == null)
-            {
                 return NotFound();
-            }
 
             _context.Products.Remove(product);
             await _context.SaveChangesAsync();
@@ -205,10 +215,8 @@ public class ProductsController : ControllerBase
         }
     }
 
-    private bool ProductExists(int id)
-    {
-        return _context.Products.Any(e => e.Id == id);
-    }
+    private bool ProductExists(int id) =>
+        _context.Products.Any(e => e.Id == id);
 
     private ProductDto MapToProductDto(Product p)
     {
@@ -224,9 +232,12 @@ public class ProductsController : ControllerBase
             CategoryId = p.CategoryId,
             Category = p.Category != null ? new CategoryDto
             {
-                Id = p.Category.Id,
-                Name = p.Category.Name,
-                Description = p.Category.Description
+                Id          = p.Category.Id,
+                Name        = p.Category.Name,
+                Description = p.Category.Description,
+                Slug        = p.Category.Slug,
+                Gender      = p.Category.Gender,
+                ParentId    = p.Category.ParentId,
             } : null,
             ProductVariants = p.ProductVariants?.Select(v => new ProductVariantDto
             {

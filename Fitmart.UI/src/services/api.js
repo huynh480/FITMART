@@ -1,9 +1,9 @@
 /**
  * api.js — Centralized API service
- * Base URL: VITE_API_URL env var or http://localhost:5000
+ * Base URL: VITE_API_URL env var or http://localhost:5049
  */
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5049';
 
 /* ─── Core fetch wrapper ─── */
 async function request(path, options = {}) {
@@ -46,6 +46,26 @@ export const productsApi = {
 
   remove: (id) =>
     request(`/api/products/${id}`, { method: 'DELETE' }),
+
+  /**
+   * Upload ảnh lên server.
+   * @param {File} file - File object từ input/Upload
+   * @returns {{ imageUrl: string }} - URL tuyệt đối từ wwwroot
+   */
+  uploadImage: async (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/api/products/upload-image`, {
+      method: 'POST',
+      body: form,
+      // Không set Content-Type — browser tự thêm boundary cho multipart
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message || `Upload thất bại (HTTP ${res.status})`);
+    }
+    return res.json(); // { imageUrl: "/images/products/xxx.jpg" }
+  },
 };
 
 /* ═══════════════════════════════════════════
@@ -57,6 +77,12 @@ export const categoriesApi = {
   getAll: () => request('/api/categories'),
 
   getById: (id) => request(`/api/categories/${id}`),
+
+  /** Lấy danh mục theo slug — trả về Category | null */
+  getBySlug: async (slug) => {
+    const list = await request(`/api/categories?slug=${encodeURIComponent(slug)}`);
+    return Array.isArray(list) && list.length > 0 ? list[0] : null;
+  },
 
   create: (body) =>
     request('/api/categories', { method: 'POST', body: JSON.stringify(body) }),

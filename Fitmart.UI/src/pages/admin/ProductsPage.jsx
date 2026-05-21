@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import navMenuData from '../../config/navMenuData';
 import {
   Table, Input, Select, Modal, Form, InputNumber,
   Upload, message, Popconfirm, Spin, Alert,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
 import { productsApi, categoriesApi } from '../../services/api';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5049';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -24,47 +25,22 @@ const genderOptions = [
   { value: 'Unisex', label: 'Unisex' },
 ];
 
-/**
- * Parse navMenuData → grouped flat list for the category Select.
- * Bỏ qua các group "Xu hướng", "Bộ sưu tập", "Sale" (không phải category sản phẩm).
- * Output: [{ topLabel, options: [{ value: href, label: "NAM > Áo > Áo T-Shirt" }] }]
- */
-const SKIP_GROUPS = new Set(['Xu hướng', 'Bộ sưu tập', 'Sale']);
-
-const navCategoryGroups = navMenuData.map((top) => ({
-  topLabel: top.label,
-  options: top.groups
-    .filter((g) => !SKIP_GROUPS.has(g.label))
-    .flatMap((g) =>
-      g.links.map((link) => ({
-        value: link.href,                           // e.g. "/collections/nam/ao-t-shirt"
-        label: `${top.label} > ${g.label} > ${link.label}`,  // "NAM > Áo > Áo T-Shirt"
-        display: link.label,                        // rút gọn hiển thị trong tag
-      }))
-    ),
-}));
-
-// Flat list (dùng khi cần tìm nhanh)
-const navCategoryFlat = navCategoryGroups.flatMap((g) => g.options);
 
 const statusCls   = { active: 'admin-products__status--active', inactive: 'admin-products__status--inactive', outofstock: 'admin-products__status--outofstock' };
 const statusLabel = { active: 'Đang bán', inactive: 'Ngừng bán', outofstock: 'Hết hàng' };
 
-/* ─── Image uploader per color group ─── */
+/* ─── Image uploader per color group ───
+ * - preview[] chứa imageUrl từ server (ví dụ: "/images/products/abc.jpg")
+ * - Khi chọn file: gọi productsApi.uploadImage() → nhận url → hiển thị preview ngay
+ */
 function ImageUploaderByColor({ colorList, value, onChange }) {
-  const groups = colorList?.length > 0 ? ['Chung', ...colorList] : ['Chung'];
+  const groups   = colorList?.length > 0 ? ['Chung', ...colorList] : ['Chung'];
   const groupData = value || {};
-  const getGroup  = (g) => groupData[g] || { fileList: [], preview: [] };
+  const getGroup  = (g) => groupData[g] || { urls: [] };
 
   const removeImage = (group, idx) => {
     const gd = getGroup(group);
-    onChange({
-      ...groupData,
-      [group]: {
-        fileList: gd.fileList.filter((_, i) => i !== idx),
-        preview:  gd.preview.filter((_, i) => i !== idx),
-      },
-    });
+    onChange({ ...groupData, [group]: { urls: gd.urls.filter((_, i) => i !== idx) } });
   };
 
   return (
@@ -77,27 +53,71 @@ function ImageUploaderByColor({ colorList, value, onChange }) {
               {group === 'Chung' ? '📷 Ảnh chung (thumb = ảnh đầu)' : `🎨 Màu: ${group}`}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {gd.preview.map((src, idx) => (
-                <div key={idx} style={{ position: 'relative', width: 86, height: 86, borderRadius: 6, overflow: 'hidden', border: idx === 0 ? '2px solid #1b1b1b' : '1px solid #e0e0e0' }}>
-                  <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {idx === 0 && <span style={{ position: 'absolute', top: 3, left: 3, background: '#1b1b1b', color: '#fff', fontSize: 9, padding: '1px 5px', borderRadius: 4 }}>THUMB</span>}
-                  <button type="button" onClick={() => removeImage(group, idx)} style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,.55)', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              {gd.urls.map((url, idx) => (
+                <div key={idx} style={{
+                  position: 'relative', width: 86, height: 86,
+                  borderRadius: 6, overflow: 'hidden',
+                  border: idx === 0 ? '2px solid #1b1b1b' : '1px solid #e0e0e0',
+                }}>
+                  <img
+                    src={url.startsWith('http') ? url : `${API_BASE}${url}`}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {idx === 0 && (
+                    <span style={{
+                      position: 'absolute', top: 3, left: 3,
+                      background: '#1b1b1b', color: '#fff',
+                      fontSize: 9, padding: '1px 5px', borderRadius: 4,
+                    }}>THUMB</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(group, idx)}
+                    style={{
+                      position: 'absolute', top: 3, right: 3,
+                      background: 'rgba(0,0,0,.55)', border: 'none',
+                      borderRadius: '50%', width: 18, height: 18,
+                      cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', padding: 0,
+                    }}
+                  >
                     <DeleteOutlined style={{ color: '#fff', fontSize: 10 }} />
                   </button>
                 </div>
               ))}
-              {gd.fileList.length < 6 && (
-                <Upload listType="picture-card" fileList={[]} showUploadList={false}
-                  beforeUpload={(file) => {
-                    if (!file.type.startsWith('image/')) { message.error('Chỉ chấp nhận file ảnh!'); return Upload.LIST_IGNORE; }
-                    const preview = URL.createObjectURL(file);
-                    onChange({ ...groupData, [group]: { fileList: [...gd.fileList, file], preview: [...gd.preview, preview] } });
-                    return false;
+
+              {gd.urls.length < 6 && (
+                <Upload
+                  listType="picture-card"
+                  fileList={[]}
+                  showUploadList={false}
+                  accept="image/*"
+                  beforeUpload={async (file) => {
+                    if (!file.type.startsWith('image/')) {
+                      message.error('Chỉ chấp nhận file ảnh!');
+                      return Upload.LIST_IGNORE;
+                    }
+                    const hide = message.loading('Đang upload ảnh...', 0);
+                    try {
+                      const { imageUrl } = await productsApi.uploadImage(file);
+                      onChange({
+                        ...groupData,
+                        [group]: { urls: [...gd.urls, imageUrl] },
+                      });
+                      message.success('Upload ảnh thành công!');
+                    } catch (e) {
+                      message.error(`Upload thất bại: ${e.message}`);
+                    } finally {
+                      hide();
+                    }
+                    return false; // ngăn antd tự gửi
                   }}
                 >
                   <div style={{ fontSize: 12, textAlign: 'center', color: '#999' }}>
                     <PlusOutlined style={{ fontSize: 18, display: 'block', marginBottom: 4 }} />
-                    Thêm ảnh<div style={{ fontSize: 10 }}>{gd.fileList.length}/6</div>
+                    Thêm ảnh
+                    <div style={{ fontSize: 10 }}>{gd.urls.length}/6</div>
                   </div>
                 </Upload>
               )}
@@ -178,8 +198,11 @@ export default function ProductsPage() {
   const openEdit = (p) => {
     setEditingProduct(p);
     setSelectedColors([]);
-    const thumb = p.productVariants?.[0]?.imageUrl || '';
-    setColorImages(thumb ? { Chung: { fileList: [], preview: [thumb] } } : {});
+    // Lấy tất cả imageUrl từ productVariants, loại trùng, đưa vào nhóm "Chung"
+    const allUrls = [...new Set(
+      (p.productVariants || []).map(v => v.imageUrl).filter(Boolean)
+    )];
+    setColorImages(allUrls.length > 0 ? { Chung: { urls: allUrls } } : {});
     form.setFieldsValue({
       name:              p.name,
       description:       p.description,
@@ -201,10 +224,10 @@ export default function ProductsPage() {
       const values = await form.validateFields();
       setSaving(true);
 
-      // Lấy thumbnail từ ảnh upload
+      // Lấy thumbnail: url đầu tiên từ nhóm Chung, nếu không có lấy từ nhóm bất kỳ
       const thumb =
-        colorImages?.Chung?.preview?.[0] ||
-        Object.values(colorImages).find(g => g.preview?.[0])?.preview?.[0] ||
+        colorImages?.Chung?.urls?.[0] ||
+        Object.values(colorImages).find(g => g.urls?.[0])?.urls?.[0] ||
         null;
 
       const payload = {
@@ -366,17 +389,10 @@ export default function ProductsPage() {
                     (opt?.label ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                 >
-                  {navCategoryGroups.map((group) => (
-                    <Select.OptGroup key={group.topLabel} label={group.topLabel}>
-                      {group.options.map((opt) => (
-                        <Option key={opt.value} value={opt.value} label={opt.label}>
-                          <span style={{ color: '#888', fontSize: 11, marginRight: 4 }}>
-                            {group.topLabel} &rsaquo;
-                          </span>
-                          {opt.display}
-                        </Option>
-                      ))}
-                    </Select.OptGroup>
+                  {categories.map((cat) => (
+                    <Option key={cat.id} value={cat.id} label={cat.name}>
+                      {cat.name}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>

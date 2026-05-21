@@ -17,12 +17,25 @@ public class CategoriesController : ControllerBase
     }
 
     // GET: api/Categories
+    // Query params: ?slug=nam  ?gender=nam  ?parentId=5
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<Category>>> GetCategories(
+        [FromQuery] string? slug = null,
+        [FromQuery] string? gender = null,
+        [FromQuery] int? parentId = null)
     {
         try
         {
-            var categories = await _context.Categories.ToListAsync();
+            IQueryable<Category> query = _context.Categories.OrderBy(c => c.Gender).ThenBy(c => c.Name);
+
+            if (!string.IsNullOrWhiteSpace(slug))
+                query = query.Where(c => c.Slug == slug);
+            if (!string.IsNullOrWhiteSpace(gender))
+                query = query.Where(c => c.Gender == gender);
+            if (parentId.HasValue)
+                query = query.Where(c => c.ParentId == parentId.Value);
+
+            var categories = await query.ToListAsync();
             return Ok(categories);
         }
         catch (Exception ex)
@@ -38,11 +51,8 @@ public class CategoriesController : ControllerBase
         try
         {
             var category = await _context.Categories.FindAsync(id);
-
             if (category == null)
-            {
                 return NotFound(new { message = "Không tìm thấy danh mục." });
-            }
 
             return Ok(category);
         }
@@ -60,7 +70,6 @@ public class CategoriesController : ControllerBase
         {
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
-
             return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
         }
         catch (Exception ex)
@@ -74,9 +83,7 @@ public class CategoriesController : ControllerBase
     public async Task<IActionResult> PutCategory(int id, Category category)
     {
         if (id != category.Id)
-        {
             return BadRequest(new { message = "ID danh mục không hợp lệ." });
-        }
 
         _context.Entry(category).State = EntityState.Modified;
 
@@ -88,9 +95,7 @@ public class CategoriesController : ControllerBase
         catch (DbUpdateConcurrencyException)
         {
             if (!CategoryExists(id))
-            {
                 return NotFound(new { message = "Không tìm thấy danh mục để cập nhật." });
-            }
             throw;
         }
         catch (Exception ex)
@@ -107,13 +112,10 @@ public class CategoriesController : ControllerBase
         {
             var category = await _context.Categories.FindAsync(id);
             if (category == null)
-            {
                 return NotFound(new { message = "Không tìm thấy danh mục để xóa." });
-            }
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
         catch (Exception ex)
@@ -122,8 +124,6 @@ public class CategoriesController : ControllerBase
         }
     }
 
-    private bool CategoryExists(int id)
-    {
-        return _context.Categories.Any(e => e.Id == id);
-    }
+    private bool CategoryExists(int id) =>
+        _context.Categories.Any(e => e.Id == id);
 }
