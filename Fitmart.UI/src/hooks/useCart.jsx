@@ -69,6 +69,8 @@ export function CartProvider({ children }) {
         colorName: color.name,
         size,
         price: product.salePrice || product.price,
+        originalPrice: product.price,
+        salePrice: product.salePrice || null,
         quantity,
       };
 

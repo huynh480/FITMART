@@ -12,6 +12,7 @@ import {
 import navMenuData from '../config/navMenuData';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import { categoriesApi } from '../services/api';
 
 const { Panel } = Collapse;
 
@@ -60,7 +61,7 @@ const ChevronRight = () => (
 // Zone 1 (260px) — left panel: group list with chevrons
 // Zone 2 (280px) — right panel: sub-links of the active group
 // Zone 3 (flex 1) — lifestyle image, full height, flush right
-const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) => {
+const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick, resolveLink }) => {
   const groups = category?.groups ?? [];
 
   // Track which left-panel group is active. Reset to first group whenever menu opens.
@@ -88,7 +89,6 @@ const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) =
     fontWeight: isActive ? 600 : 400,
     color: '#1b1b1b',
     backgroundColor: isActive ? '#f7f7f7' : 'transparent',
-    borderLeft: isActive ? '2px solid #1b1b1b' : '2px solid transparent',
     transition: 'background-color 125ms ease-in-out, border-color 125ms ease-in-out, font-weight 0ms',
     boxSizing: 'border-box',
     userSelect: 'none',
@@ -198,7 +198,7 @@ const MegaMenu = ({ category, isOpen, onMenuEnter, onMenuLeave, onLinkClick }) =
           {(activeGroup?.links ?? []).map((link) => (
             <li key={link.href}>
               <Link
-                to={link.href}
+                to={resolveLink ? resolveLink(link.href) : link.href}
                 onClick={onLinkClick}
                 style={{
                   fontSize: '14px',
@@ -325,6 +325,33 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const [dbCategories, setDbCategories] = useState([]);
+
+  useEffect(() => {
+    categoriesApi.getAll()
+      .then(data => {
+        if (data) setDbCategories(data);
+      })
+      .catch(err => console.error("Error fetching categories for Navbar:", err));
+  }, []);
+
+  const resolveLink = useCallback((href) => {
+    if (!href || !href.startsWith('/collections/')) return href;
+    const parts = href.replace('/collections/', '').split('/');
+    if (parts.length < 2) return href;
+    
+    const genderPart = parts[0];
+    const slugPart = parts[1];
+    
+    const dbGender = genderPart === 'nam' ? 'nam' : genderPart === 'nu' ? 'nu' : 'unisex';
+    
+    const matched = dbCategories.find(c => c.slug === slugPart && c.gender === dbGender);
+    if (matched) {
+      return `/category/${matched.id}`;
+    }
+    return href;
+  }, [dbCategories]);
 
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
@@ -625,6 +652,7 @@ const Navbar = () => {
             onMenuEnter={handleMenuEnter}
             onMenuLeave={handleMenuLeave}
             onLinkClick={handleLinkClick}
+            resolveLink={resolveLink}
           />
         ))}
       </div>
@@ -698,7 +726,7 @@ const Navbar = () => {
                       {group.links.map((link) => (
                         <li key={link.href} style={{ marginBottom: '12px' }}>
                           <Link
-                            to={link.href}
+                            to={resolveLink(link.href)}
                             onClick={() => setMobileDrawerOpen(false)}
                             style={{
                               fontSize: '14px',

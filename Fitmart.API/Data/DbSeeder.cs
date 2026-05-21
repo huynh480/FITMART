@@ -19,13 +19,14 @@ public static class DbSeeder
         public bool IsNew { get; set; }
         public bool IsBestSeller { get; set; }
         public string ImageUrl { get; set; } = "";
+        public List<string> DetailImages { get; set; } = new();
         public string Slug { get; set; } = "";
     }
 
     public static void Seed(ApplicationDbContext context)
     {
         // Dev mode: xóa và tạo lại DB mỗi lần khởi động
-        context.Database.EnsureDeleted();
+        // context.Database.EnsureDeleted();
         context.Database.EnsureCreated();
 
         // ════════════════════════════════════════════════════════
@@ -182,6 +183,18 @@ public static class DbSeeder
                 }
 
                 products.Add(product);
+
+                // ── Tạo danh sách ảnh chi tiết (ProductImages) từ JSON ──
+                if (dto.DetailImages?.Any() == true)
+                {
+                    foreach (var imgUrl in dto.DetailImages)
+                    {
+                        product.ProductImages.Add(new ProductImage
+                        {
+                            ImageUrl = imgUrl
+                        });
+                    }
+                }
             }
 
             context.Products.AddRange(products);

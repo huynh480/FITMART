@@ -20,6 +20,15 @@ export default function CartDrawer() {
   const navigate = useNavigate();
   const drawerRef = useRef(null);
 
+  const totalSavings = cartItems.reduce((sum, item) => {
+    const original = item.originalPrice || item.price;
+    const sale = item.salePrice;
+    if (sale && original > sale) {
+      return sum + (original - sale) * item.quantity;
+    }
+    return sum;
+  }, 0);
+
   /* ── Lock body scroll while open ─────────────────────────────────── */
   useEffect(() => {
     if (isCartOpen) {
@@ -283,6 +292,38 @@ export default function CartDrawer() {
               </span>
             </div>
 
+            {/* Savings row */}
+            {totalSavings > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '4px',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Roboto', sans-serif",
+                    fontSize: '12px',
+                    color: '#e53935',
+                  }}
+                >
+                  Tiết kiệm:
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Roboto', sans-serif",
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#e53935',
+                  }}
+                >
+                  {formatPrice(totalSavings)}
+                </span>
+              </div>
+            )}
+
             <p
               style={{
                 fontFamily: "'Roboto', sans-serif",
@@ -401,13 +442,15 @@ function CartItem({ item, onRemove, onUpdateQty }) {
           style={{
             fontFamily: "'Roboto', sans-serif",
             fontSize: '14px',
-            fontWeight: 600,
+            fontWeight: 500,
             color: '#1b1b1b',
             margin: '0 0 4px',
             lineHeight: '1.35',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
             paddingRight: '24px',
             textAlign: 'left',
           }}
@@ -539,16 +582,17 @@ function CartItem({ item, onRemove, onUpdateQty }) {
           border: 'none',
           cursor: 'pointer',
           padding: '2px',
-          color: '#9e9e9e',
+          color: '#6e6e6e',
+          fontSize: '12px',
           transition: 'color 200ms',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#1b1b1b')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#9e9e9e')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#000')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#6e6e6e')}
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       </button>

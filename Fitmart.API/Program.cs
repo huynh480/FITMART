@@ -71,11 +71,6 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
-
-
-app.UseStaticFiles(); // Dòng này cho phép Backend mở thư mục wwwroot ra bên ngoài
-
-
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

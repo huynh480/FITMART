@@ -16,6 +16,10 @@
     "isNew": true,
     "isBestSeller": false,
     "imageUrl": "images/products/images-ao-tank-top-tap-gym-legacy.webp",
+    "detailImages": [
+      "images/products/detail-ao-tank-top-legacy-1.webp",
+      "images/products/detail-ao-tank-top-legacy-2.webp"
+    ],
     "slug": "ao-tank-top-tap-gym-legacy"
   },
   {
@@ -35,6 +39,10 @@
     "isNew": false,
     "isBestSeller": true,
     "imageUrl": "images/products/images-Short.webp",
+    "detailImages": [
+      "images/products/detail-quan-short-studio-1.webp",
+      "images/products/detail-quan-short-studio-2.webp"
+    ],
     "slug": "quan-short-chay-bo-studio"
   },
   {
@@ -54,6 +62,11 @@
     "isNew": true,
     "isBestSeller": true,
     "imageUrl": "PLACEHOLDER",
+    "detailImages": [
+      "images/products/detail-hoodie-gs-power-1.webp",
+      "images/products/detail-hoodie-gs-power-2.webp",
+      "images/products/detail-hoodie-gs-power-3.webp"
+    ],
     "slug": "ao-hoodie-oversize-gs-power"
   },
   {
@@ -73,6 +86,10 @@
     "isNew": false,
     "isBestSeller": true,
     "imageUrl": "PLACEHOLDER",
+    "detailImages": [
+      "images/products/detail-ao-thun-everyday-1.webp",
+      "images/products/detail-ao-thun-everyday-2.webp"
+    ],
     "slug": "ao-thun-tap-gym-everyday"
   },
   {
@@ -92,6 +109,10 @@
     "isNew": false,
     "isBestSeller": false,
     "imageUrl": "PLACEHOLDER",
+    "detailImages": [
+      "images/products/detail-jogger-vital-1.webp",
+      "images/products/detail-jogger-vital-2.webp"
+    ],
     "slug": "quan-jogger-the-thao-vital"
   },
   {

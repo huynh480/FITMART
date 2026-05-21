@@ -133,34 +133,63 @@ class ErrorBoundary extends React.Component {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 function CollectionPageInner() {
-  const { '*': slugPath } = useParams();
+  const { categoryId, '*': slugPath } = useParams();
   const slug = (slugPath || '').replace(/^\//, '');
 
   // Config tĩnh — vẫn dùng để lấy apiCategory, filters, relatedTags
   const config = getCollectionConfig(slug || 'nam');
 
-  // Derive parentSlug (top-level segment before first slash)
-  const parentSlug = slug.includes('/') ? slug.split('/')[0] : null;
-
   // ── Dữ liệu danh mục từ API (name + description) ──────────────────────────
-  // apiCategory là slug top-level (nam / nu / phu-kien…) — dùng để query
-  const topSlug = slug.includes('/') ? slug.split('/')[0] : slug;
   const [apiCategory, setApiCategory] = useState(null); // { name, description } | null
 
+  // Fetch category by ID (if categoryId is present)
   useEffect(() => {
+    if (!categoryId) return;
+    let cancelled = false;
+    categoriesApi.getById(categoryId)
+      .then((cat) => {
+        if (!cancelled && cat) setApiCategory(cat);
+      })
+      .catch((err) => console.error("Error fetching category details:", err));
+    return () => { cancelled = true; };
+  }, [categoryId]);
+
+  // Fetch category by slug (if categoryId is NOT present)
+  const topSlug = slug.includes('/') ? slug.split('/')[0] : slug;
+  useEffect(() => {
+    if (categoryId) return;
     let cancelled = false;
     categoriesApi.getBySlug(topSlug)
       .then((cat) => { if (!cancelled && cat) setApiCategory(cat); })
       .catch(() => {/* bỏ qua — fallback về config tĩnh */});
     return () => { cancelled = true; };
-  }, [topSlug]);
+  }, [topSlug, categoryId]);
+
+  // Derive parentSlug (top-level segment before first slash or based on apiCategory gender)
+  const parentSlug = categoryId && apiCategory
+    ? (apiCategory.gender === 'nu' ? 'nu' : apiCategory.gender === 'nam' ? 'nam' : 'phu-kien')
+    : (slug.includes('/') ? slug.split('/')[0] : null);
 
   // Config hiển thị: ưu tiên dữ liệu từ API, fallback về config tĩnh
-  const displayConfig = useMemo(() => ({
-    ...config,
-    name: apiCategory?.name?.toUpperCase() ?? config.name,
-    description: apiCategory?.description ?? config.description,
-  }), [config, apiCategory]);
+  const displayConfig = useMemo(() => {
+    if (categoryId && apiCategory) {
+      const genderPath = apiCategory.gender === 'nu' ? 'nu' : apiCategory.gender === 'nam' ? 'nam' : 'phu-kien';
+      const staticParentConfig = getCollectionConfig(genderPath);
+      return {
+        slug: `category/${apiCategory.id}`,
+        name: apiCategory.name.toUpperCase(),
+        apiCategory: apiCategory.gender,
+        description: apiCategory.description || '',
+        relatedTags: staticParentConfig.relatedTags || [],
+        filters: staticParentConfig.filters || { categories: [], collections: [] },
+      };
+    }
+    return {
+      ...config,
+      name: apiCategory?.name?.toUpperCase() ?? config.name,
+      description: apiCategory?.description ?? config.description,
+    };
+  }, [config, apiCategory, categoryId]);
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,17 +210,46 @@ function CollectionPageInner() {
 
     async function load() {
       try {
-        const r = await fetch(`${API_BASE}?pageSize=200&category=${config.apiCategory}`);
+        let url = `${API_BASE}?pageSize=200`;
+        
+        if (categoryId) {
+          url += `&categoryId=${categoryId}`;
+        } else if (slug) {
+          try {
+            const categories = await categoriesApi.getAll();
+            const slugParts = slug.split('/');
+            const targetSlug = slugParts[slugParts.length - 1];
+            const genderPart = slugParts[0];
+            const dbGender = genderPart === 'nam' ? 'nam' : genderPart === 'nu' ? 'nu' : 'unisex';
+            
+            const matched = categories.find(c => c.slug === targetSlug && (slugParts.length === 1 || c.gender === dbGender));
+            if (matched) {
+              url += `&categoryId=${matched.id}`;
+            } else {
+              // Fallback: gender filtering
+              if (slug === 'nam' || slug === 'nu' || slug === 'phu-kien') {
+                const genderVal = slug === 'nam' ? 'Nam' : slug === 'nu' ? 'Nữ' : 'Unisex';
+                url += `&gender=${encodeURIComponent(genderVal)}`;
+              } else if (config.apiCategory) {
+                const genderVal = config.apiCategory === 'nam' ? 'Nam' : config.apiCategory === 'nu' ? 'Nữ' : 'Unisex';
+                url += `&gender=${encodeURIComponent(genderVal)}`;
+              }
+            }
+          } catch (e) {
+            console.error("Error resolving categories:", e);
+            if (config.apiCategory) {
+              const genderVal = config.apiCategory === 'nam' ? 'Nam' : config.apiCategory === 'nu' ? 'Nữ' : 'Unisex';
+              url += `&gender=${encodeURIComponent(genderVal)}`;
+            }
+          }
+        }
+
+        const r = await fetch(url);
         const d = await r.json();
         if (!cancelled) setAllProducts(d.items ?? (Array.isArray(d) ? d : []));
-      } catch {
-        try {
-          const r2 = await fetch(`${API_BASE}?pageSize=200`);
-          const d2 = await r2.json();
-          if (!cancelled) setAllProducts(d2.items ?? (Array.isArray(d2) ? d2 : []));
-        } catch {
-          if (!cancelled) setAllProducts([]);
-        }
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        if (!cancelled) setAllProducts([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -199,7 +257,7 @@ function CollectionPageInner() {
 
     load();
     return () => { cancelled = true; };
-  }, [slug]); // eslint-disable-line
+  }, [slug, categoryId, config.apiCategory]);
 
   // ── Processed list ─────────────────────────────────────────────────────────
   const processed = useMemo(

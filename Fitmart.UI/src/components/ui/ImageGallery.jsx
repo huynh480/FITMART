@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { API_BASE } from '../../services/api';
 
 /* ─────────────────────────────────────────────
    ImageGallery
    Props:
      images   string[]  – ordered list of image URLs for the active color
      altBase  string    – product name for alt text prefix
-───────────────────────────────────────────── */
+ ───────────────────────────────────────────── */
 export function ImageGallery({ images = [], altBase = 'Sản phẩm' }) {
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [mainStatus, setMainStatus] = React.useState('loading');
@@ -24,8 +25,15 @@ export function ImageGallery({ images = [], altBase = 'Sản phẩm' }) {
     setMainStatus('loading');
   };
 
-  const visibleThumbs = images.slice(0, 6);
-  const mainSrc = images[activeIdx] ?? '';
+  const formattedImages = images.map(src => {
+    if (!src) return '';
+    return src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')
+      ? src
+      : `${API_BASE}${src}`;
+  });
+
+  const visibleThumbs = formattedImages.slice(0, 6);
+  const mainSrc = formattedImages[activeIdx] ?? '';
 
   return (
     <div className="flex flex-col gap-3 w-full">

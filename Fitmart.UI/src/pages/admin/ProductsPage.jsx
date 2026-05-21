@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5049';
 const { Option } = Select;
 const { TextArea } = Input;
 
-/* ─── Static options ─── */
+/* ─── Các tuỳ chọn tĩnh ─── */
 const statusOptions = [
   { value: 'active',     label: 'Đang bán' },
   { value: 'inactive',   label: 'Ngừng bán' },
@@ -29,112 +29,13 @@ const genderOptions = [
 const statusCls   = { active: 'admin-products__status--active', inactive: 'admin-products__status--inactive', outofstock: 'admin-products__status--outofstock' };
 const statusLabel = { active: 'Đang bán', inactive: 'Ngừng bán', outofstock: 'Hết hàng' };
 
-/* ─── Image uploader per color group ───
- * - preview[] chứa imageUrl từ server (ví dụ: "/images/products/abc.jpg")
- * - Khi chọn file: gọi productsApi.uploadImage() → nhận url → hiển thị preview ngay
- */
-function ImageUploaderByColor({ colorList, value, onChange }) {
-  const groups   = colorList?.length > 0 ? ['Chung', ...colorList] : ['Chung'];
-  const groupData = value || {};
-  const getGroup  = (g) => groupData[g] || { urls: [] };
-
-  const removeImage = (group, idx) => {
-    const gd = getGroup(group);
-    onChange({ ...groupData, [group]: { urls: gd.urls.filter((_, i) => i !== idx) } });
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {groups.map((group) => {
-        const gd = getGroup(group);
-        return (
-          <div key={group}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 8 }}>
-              {group === 'Chung' ? '📷 Ảnh chung (thumb = ảnh đầu)' : `🎨 Màu: ${group}`}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {gd.urls.map((url, idx) => (
-                <div key={idx} style={{
-                  position: 'relative', width: 86, height: 86,
-                  borderRadius: 6, overflow: 'hidden',
-                  border: idx === 0 ? '2px solid #1b1b1b' : '1px solid #e0e0e0',
-                }}>
-                  <img
-                    src={url.startsWith('http') ? url : `${API_BASE}${url}`}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  {idx === 0 && (
-                    <span style={{
-                      position: 'absolute', top: 3, left: 3,
-                      background: '#1b1b1b', color: '#fff',
-                      fontSize: 9, padding: '1px 5px', borderRadius: 4,
-                    }}>THUMB</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeImage(group, idx)}
-                    style={{
-                      position: 'absolute', top: 3, right: 3,
-                      background: 'rgba(0,0,0,.55)', border: 'none',
-                      borderRadius: '50%', width: 18, height: 18,
-                      cursor: 'pointer', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', padding: 0,
-                    }}
-                  >
-                    <DeleteOutlined style={{ color: '#fff', fontSize: 10 }} />
-                  </button>
-                </div>
-              ))}
-
-              {gd.urls.length < 6 && (
-                <Upload
-                  listType="picture-card"
-                  fileList={[]}
-                  showUploadList={false}
-                  accept="image/*"
-                  beforeUpload={async (file) => {
-                    if (!file.type.startsWith('image/')) {
-                      message.error('Chỉ chấp nhận file ảnh!');
-                      return Upload.LIST_IGNORE;
-                    }
-                    const hide = message.loading('Đang upload ảnh...', 0);
-                    try {
-                      const { imageUrl } = await productsApi.uploadImage(file);
-                      onChange({
-                        ...groupData,
-                        [group]: { urls: [...gd.urls, imageUrl] },
-                      });
-                      message.success('Upload ảnh thành công!');
-                    } catch (e) {
-                      message.error(`Upload thất bại: ${e.message}`);
-                    } finally {
-                      hide();
-                    }
-                    return false; // ngăn antd tự gửi
-                  }}
-                >
-                  <div style={{ fontSize: 12, textAlign: 'center', color: '#999' }}>
-                    <PlusOutlined style={{ fontSize: 18, display: 'block', marginBottom: 4 }} />
-                    Thêm ảnh
-                    <div style={{ fontSize: 10 }}>{gd.urls.length}/6</div>
-                  </div>
-                </Upload>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ─── Section style helpers ─── */
+/* ─── Style helpers cho các section trong form ─── */
 const sec  = { background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '16px 16px 4px', marginBottom: 16 };
 const secT = { fontSize: 13, fontWeight: 700, color: '#1b1b1b', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid #ebebeb' };
 
 /* ═══════════════════════════════════════════════════
-   ProductsPage
+   ProductsPage — Quản lý sản phẩm (Admin)
+   Hỗ trợ upload 1 ảnh chính + nhiều ảnh chi tiết
    ═══════════════════════════════════════════════════ */
 export default function ProductsPage() {
   const [products, setProducts]             = useState([]);
@@ -147,17 +48,22 @@ export default function ProductsPage() {
   const [filterStatus, setFilterStatus]     = useState(null);
   const [modalOpen, setModalOpen]           = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [colorImages, setColorImages]       = useState({});
-  const [selectedColors, setSelectedColors] = useState([]);
+
+  // State cho ảnh chính (1 file)
+  const [fileList, setFileList]             = useState([]);
+  // State cho ảnh chi tiết (nhiều file)
+  const [detailFileList, setDetailFileList] = useState([]);
+  // State cho kích cỡ được chọn (Size)
+  const [selectedSizes, setSelectedSizes] = useState([]);
+
   const [form] = Form.useForm();
 
-  /* ─── Fetch ─── */
+  /* ─── Lấy dữ liệu từ API ─── */
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await productsApi.getAll();
-      // API trả về { items: [...] }
       setProducts(data?.items ?? data ?? []);
     } catch (e) {
       setError(`Không thể tải danh sách sản phẩm: ${e.message}`);
@@ -178,7 +84,7 @@ export default function ProductsPage() {
     fetchCategories();
   }, [fetchProducts, fetchCategories]);
 
-  /* ─── Filter (client-side) ─── */
+  /* ─── Lọc sản phẩm (client-side) ─── */
   const filtered = useMemo(() => products.filter((p) => {
     const matchSearch   = !search || p.name?.toLowerCase().includes(search.toLowerCase());
     const matchCategory = !filterCategory || p.categoryId === filterCategory;
@@ -186,23 +92,57 @@ export default function ProductsPage() {
     return matchSearch && matchCategory && matchStatus;
   }), [products, search, filterCategory, filterStatus]);
 
-  /* ─── Open modals ─── */
+  /* ─── Mở modal thêm mới ─── */
   const openAdd = () => {
     setEditingProduct(null);
-    setColorImages({});
-    setSelectedColors([]);
+    setFileList([]);
+    setDetailFileList([]);
+    setSelectedSizes([]);
     form.resetFields();
     setModalOpen(true);
   };
 
+  /* ─── Mở modal chỉnh sửa ─── */
   const openEdit = (p) => {
     setEditingProduct(p);
-    setSelectedColors([]);
-    // Lấy tất cả imageUrl từ productVariants, loại trùng, đưa vào nhóm "Chung"
-    const allUrls = [...new Set(
-      (p.productVariants || []).map(v => v.imageUrl).filter(Boolean)
-    )];
-    setColorImages(allUrls.length > 0 ? { Chung: { urls: allUrls } } : {});
+
+    // Load ảnh chính từ variant đầu tiên
+    const src = p.productVariants?.[0]?.imageUrl;
+    if (src) {
+      setFileList([
+        {
+          uid: '-1',
+          name: 'image.png',
+          status: 'done',
+          url: src.startsWith('http') ? src : `${API_BASE}${src}`,
+        }
+      ]);
+    } else {
+      setFileList([]);
+    }
+
+    // Load ảnh chi tiết hiện có từ productImages
+    if (p.productImages && p.productImages.length > 0) {
+      setDetailFileList(
+        p.productImages.map((img, index) => ({
+          uid: `detail-${img.id || index}`,
+          name: `detail-${index + 1}.jpg`,
+          status: 'done',
+          url: img.imageUrl?.startsWith('http')
+            ? img.imageUrl
+            : `${API_BASE}${img.imageUrl}`,
+        }))
+      );
+    } else {
+      setDetailFileList([]);
+    }
+
+    // Load danh sách size từ các variant hiện có
+    const currentSizes = p.productVariants
+      ? [...new Set(p.productVariants.map(v => v.size))].filter(Boolean)
+      : [];
+    setSelectedSizes(currentSizes);
+
     form.setFieldsValue({
       name:              p.name,
       description:       p.description,
@@ -216,51 +156,69 @@ export default function ProductsPage() {
     setModalOpen(true);
   };
 
-  const closeModal = () => { setModalOpen(false); form.resetFields(); };
+  const closeModal = () => {
+    setModalOpen(false);
+    setSelectedSizes([]);
+    form.resetFields();
+  };
 
-  /* ─── Save ─── */
+  /* ─── Lưu sản phẩm (Thêm mới / Cập nhật) ─── */
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       setSaving(true);
 
-      // Lấy thumbnail: url đầu tiên từ nhóm Chung, nếu không có lấy từ nhóm bất kỳ
-      const thumb =
-        colorImages?.Chung?.urls?.[0] ||
-        Object.values(colorImages).find(g => g.urls?.[0])?.urls?.[0] ||
-        null;
+      // Tạo FormData để gửi multipart/form-data
+      const formData = new FormData();
+      formData.append('id', editingProduct?.id ?? 0);
+      formData.append('name', values.name);
+      formData.append('description', values.description ?? '');
+      formData.append('price', values.price);
+      formData.append('gender', values.gender ?? '');
+      formData.append('collection', values.collection ?? '');
+      formData.append('isFeatured', values.isFeatured ?? false);
+      formData.append('categoryId', values.categoryId);
+      formData.append('status', values.status ?? 'active');
 
-      const payload = {
-        id:          editingProduct?.id ?? 0,
-        name:        values.name,
-        description: values.description ?? '',
-        price:       values.price,
-        gender:      values.gender ?? null,
-        collection:  values.collection ?? null,
-        isFeatured:  values.isFeatured ?? false,
-        categoryId:  values.categoryId,
-        // productVariants dùng riêng — không gửi trong payload này
-      };
+      // Gắn danh sách kích cỡ (Sizes)
+      if (selectedSizes && selectedSizes.length > 0) {
+        formData.append('Sizes', selectedSizes.join(','));
+      } else {
+        formData.append('Sizes', '');
+      }
+
+      // Gắn file ảnh chính (nếu có file mới từ máy tính)
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        formData.append('image', fileList[0].originFileObj);
+      }
+
+      // Gắn danh sách file ảnh chi tiết (chỉ các file mới từ máy tính)
+      const newDetailFiles = detailFileList.filter(f => f.originFileObj);
+      if (newDetailFiles.length > 0) {
+        newDetailFiles.forEach(f => {
+          formData.append('DetailImageFiles', f.originFileObj);
+        });
+      }
 
       if (editingProduct) {
-        await productsApi.update(editingProduct.id, payload);
+        await productsApi.update(editingProduct.id, formData);
         message.success('Cập nhật sản phẩm thành công!');
       } else {
-        await productsApi.create(payload);
+        await productsApi.create(formData);
         message.success('Thêm sản phẩm thành công!');
       }
 
       closeModal();
       await fetchProducts();
     } catch (e) {
-      if (e?.errorFields) return; // AntD validation error — shown inline
+      if (e?.errorFields) return; // Lỗi validate của AntD — hiển thị inline
       message.error(`Lỗi: ${e.message}`);
     } finally {
       setSaving(false);
     }
   };
 
-  /* ─── Delete ─── */
+  /* ─── Xoá sản phẩm ─── */
   const handleDelete = async (id) => {
     try {
       await productsApi.remove(id);
@@ -271,12 +229,13 @@ export default function ProductsPage() {
     }
   };
 
-  /* ─── Table columns ─── */
+  /* ─── Cột bảng ─── */
   const columns = [
     { title: 'Ảnh', dataIndex: 'productVariants', key: 'img', width: 72,
       render: (variants) => {
         const src = variants?.[0]?.imageUrl;
-        return src ? <img src={src} alt="" className="admin-products__img" /> : <div className="admin-products__img" style={{ background: '#f0f0f0' }} />;
+        const finalSrc = src ? (src.startsWith('http') ? src : `${API_BASE}${src}`) : null;
+        return finalSrc ? <img src={finalSrc} alt="" className="admin-products__img" /> : <div className="admin-products__img" style={{ background: '#f0f0f0' }} />;
       } },
     { title: 'Tên sản phẩm', dataIndex: 'name', key: 'name',
       render: (n) => <span className="admin-products__name">{n}</span> },
@@ -286,6 +245,9 @@ export default function ProductsPage() {
       render: (v) => <span style={{ fontWeight: 600 }}>{Number(v).toLocaleString('vi-VN')} ₫</span> },
     { title: 'Giới tính', dataIndex: 'gender', key: 'gender',
       render: (g) => g ?? '—', width: 90 },
+    // Cột số ảnh chi tiết
+    { title: 'Ảnh chi tiết', dataIndex: 'productImages', key: 'detailImgs', width: 100,
+      render: (imgs) => <span style={{ color: '#6e6e6e' }}>{imgs?.length ?? 0} ảnh</span> },
     { title: 'Trạng thái', dataIndex: 'status', key: 'status',
       render: (s) => <span className={`admin-products__status ${statusCls[s] || ''}`}>{statusLabel[s] || 'Đang bán'}</span> },
     { title: 'Hành động', key: 'actions', width: 180,
@@ -316,7 +278,7 @@ export default function ProductsPage() {
 
       {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} closable onClose={() => setError(null)} />}
 
-      {/* ── Filters ── */}
+      {/* ── Bộ lọc ── */}
       <div className="admin-products__filters">
         <Input placeholder="Tìm kiếm tên sản phẩm..." prefix={<SearchOutlined style={{ color: '#bdbdbd' }} />}
           value={search} onChange={(e) => setSearch(e.target.value)} allowClear />
@@ -328,7 +290,7 @@ export default function ProductsPage() {
         </Select>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Bảng sản phẩm ── */}
       <div className="admin-products__table-wrap">
         <Spin spinning={loading} indicator={<LoadingOutlined />}>
           <Table columns={columns} dataSource={filtered} rowKey="id"
@@ -336,7 +298,7 @@ export default function ProductsPage() {
         </Spin>
       </div>
 
-      {/* ── Modal ── */}
+      {/* ── Modal Thêm/Sửa sản phẩm ── */}
       <Modal
         title={editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
         open={modalOpen} onOk={handleSave} onCancel={closeModal}
@@ -346,7 +308,7 @@ export default function ProductsPage() {
       >
         <Form form={form} layout="vertical" requiredMark="optional">
 
-          {/* Thông tin cơ bản */}
+          {/* ── Thông tin cơ bản ── */}
           <div style={sec}><div style={secT}>📋 Thông tin cơ bản</div>
             <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
               <Input placeholder="VD: Legacy Hoodie" />
@@ -372,7 +334,7 @@ export default function ProductsPage() {
             </Form.Item>
           </div>
 
-          {/* Giá & Danh mục */}
+          {/* ── Giá & Danh mục ── */}
           <div style={sec}><div style={secT}>💰 Giá & Danh mục</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Form.Item name="price" label="Giá (₫)" rules={[{ required: true, message: 'Vui lòng nhập giá' }]}>
@@ -397,20 +359,71 @@ export default function ProductsPage() {
                 </Select>
               </Form.Item>
             </div>
-            <Form.Item name="status" label="Trạng thái hiển thị">
-              <Select placeholder="Chọn trạng thái" defaultValue="active">
-                {statusOptions.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
-              </Select>
-            </Form.Item>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Form.Item name="status" label="Trạng thái hiển thị">
+                <Select placeholder="Chọn trạng thái" defaultValue="active">
+                  {statusOptions.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Kích cỡ (Size)">
+                <Select
+                  mode="multiple"
+                  placeholder="Chọn kích cỡ (S, M, L...)"
+                  value={selectedSizes}
+                  onChange={setSelectedSizes}
+                  style={{ width: '100%' }}
+                  allowClear
+                >
+                  {sizeOptions.map(sz => (
+                    <Option key={sz} value={sz}>{sz}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
           </div>
 
-          {/* Ảnh sản phẩm */}
-          <div style={sec}><div style={secT}>🖼️ Ảnh sản phẩm (tối đa 6 ảnh/nhóm — ảnh đầu = thumbnail)</div>
-            <ImageUploaderByColor
-              colorList={selectedColors}
-              value={colorImages}
-              onChange={setColorImages}
-            />
+          {/* ── Ảnh chính (tối đa 1 ảnh) ── */}
+          <div style={sec}><div style={secT}>🖼️ Ảnh đại diện chính (tối đa 1 ảnh)</div>
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={() => false}  /* Tắt tự động upload — chờ submit */
+              onChange={({ fileList: newFileList }) => {
+                setFileList(newFileList.slice(-1)); /* Chỉ giữ 1 ảnh */
+              }}
+              onRemove={() => setFileList([])}
+            >
+              {fileList.length < 1 && (
+                <div style={{ textAlign: 'center' }}>
+                  <PlusOutlined style={{ fontSize: 18, display: 'block', marginBottom: 4 }} />
+                  <div>Thêm ảnh</div>
+                </div>
+              )}
+            </Upload>
+          </div>
+
+          {/* ── Ảnh chi tiết (cho phép nhiều ảnh) ── */}
+          <div style={sec}><div style={secT}>📸 Ảnh chi tiết sản phẩm (nhiều ảnh)</div>
+            <p style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
+              Chọn nhiều file cùng lúc để upload. Ảnh sẽ được hiển thị trong trang chi tiết sản phẩm.
+            </p>
+            <Upload
+              listType="picture-card"
+              fileList={detailFileList}
+              multiple                     /* Cho phép chọn nhiều file cùng lúc */
+              beforeUpload={() => false}   /* Tắt tự động upload — chờ submit */
+              onChange={({ fileList: newList }) => {
+                setDetailFileList(newList);
+              }}
+              onRemove={(file) => {
+                setDetailFileList(prev => prev.filter(f => f.uid !== file.uid));
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <PlusOutlined style={{ fontSize: 18, display: 'block', marginBottom: 4 }} />
+                <div>Thêm ảnh</div>
+              </div>
+            </Upload>
           </div>
 
         </Form>

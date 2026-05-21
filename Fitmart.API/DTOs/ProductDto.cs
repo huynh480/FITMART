@@ -13,6 +13,11 @@ public class ProductDto
     
     public CategoryDto? Category { get; set; }
     public List<ProductVariantDto> ProductVariants { get; set; } = new();
+
+    /// <summary>
+    /// Danh sách ảnh chi tiết của sản phẩm
+    /// </summary>
+    public List<ProductImageDto> ProductImages { get; set; } = new();
 }
 
 public class ProductVariantDto
@@ -24,6 +29,15 @@ public class ProductVariantDto
     public string? ImageUrl { get; set; }
 }
 
+/// <summary>
+/// DTO cho ảnh chi tiết sản phẩm
+/// </summary>
+public class ProductImageDto
+{
+    public int Id { get; set; }
+    public string ImageUrl { get; set; } = null!;
+}
+
 public class CategoryDto
 {
     public int Id { get; set; }
@@ -32,4 +46,4 @@ public class CategoryDto
     public string? Slug { get; set; }
     public string? Gender { get; set; }
     public int? ParentId { get; set; }
-}
+}

@@ -64,6 +64,7 @@ public class ProductsController : ControllerBase
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
                 .AsQueryable();
 
             if (categoryId.HasValue)
@@ -107,6 +108,7 @@ public class ProductsController : ControllerBase
             var products = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
                 .Where(p => p.IsFeatured)
                 .OrderByDescending(p => p.Id)
                 .Take(8)
@@ -130,6 +132,7 @@ public class ProductsController : ControllerBase
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
@@ -144,19 +147,88 @@ public class ProductsController : ControllerBase
     }
 
     // POST: api/Products
+    // Nhận FormData gồm: thông tin chữ, ảnh chính (Image), nhiều ảnh chi tiết (DetailImageFiles)
     [HttpPost]
-    public async Task<ActionResult<Product>> PostProduct(Product product)
+    public async Task<ActionResult<Product>> PostProduct([FromForm] ProductFormModel model)
     {
         try
         {
-            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == model.CategoryId);
             if (!categoryExists)
                 return BadRequest(new { message = "Danh mục không tồn tại." });
+
+            // ── Xử lý ảnh chính (Image) ──
+            string? imageUrl = null;
+            if (model.Image != null && model.Image.Length > 0)
+            {
+                imageUrl = await SaveFileAsync(model.Image);
+            }
+
+            // ── Tạo Product ──
+            var product = new Product
+            {
+                Name = model.Name,
+                Price = model.Price,
+                Description = model.Description,
+                Gender = model.Gender,
+                Collection = model.Collection,
+                IsFeatured = model.IsFeatured,
+                CategoryId = model.CategoryId
+            };
+
+            // Gán ảnh chính vào ProductVariant mặc định hoặc theo kích cỡ chọn
+            if (!string.IsNullOrEmpty(model.Sizes))
+            {
+                var sizesList = model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+                foreach (var size in sizesList)
+                {
+                    product.ProductVariants.Add(new ProductVariant
+                    {
+                        Color = "Default",
+                        Size = size,
+                        StockQuantity = 100,
+                        ImageUrl = imageUrl
+                    });
+                }
+            }
+            else
+            {
+                product.ProductVariants.Add(new ProductVariant
+                {
+                    Color = "Default",
+                    Size = "One Size",
+                    StockQuantity = 100,
+                    ImageUrl = imageUrl
+                });
+            }
+
+            // ── Xử lý nhiều ảnh chi tiết (DetailImageFiles) ──
+            if (model.DetailImageFiles != null && model.DetailImageFiles.Count > 0)
+            {
+                foreach (var detailFile in model.DetailImageFiles)
+                {
+                    if (detailFile.Length > 0)
+                    {
+                        var detailUrl = await SaveFileAsync(detailFile);
+                        product.ProductImages.Add(new ProductImage
+                        {
+                            ImageUrl = detailUrl
+                        });
+                    }
+                }
+            }
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+            // Load lại product đầy đủ để trả về DTO
+            var createdProduct = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)
+                .FirstAsync(p => p.Id == product.Id);
+
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, MapToProductDto(createdProduct));
         }
         catch (Exception ex)
         {
@@ -166,18 +238,110 @@ public class ProductsController : ControllerBase
 
     // PUT: api/Products/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProduct(int id, Product product)
+    public async Task<IActionResult> PutProduct(int id, [FromForm] ProductFormModel model)
     {
-        if (id != product.Id)
+        if (id != model.Id)
             return BadRequest(new { message = "ID sản phẩm không hợp lệ." });
 
         try
         {
-            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == product.CategoryId);
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == model.CategoryId);
             if (!categoryExists)
                 return BadRequest(new { message = "Danh mục không hợp lệ." });
 
-            _context.Entry(product).State = EntityState.Modified;
+            var product = await _context.Products
+                .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (product == null)
+                return NotFound(new { message = "Không tìm thấy sản phẩm." });
+
+            // ── Cập nhật thông tin cơ bản ──
+            product.Name = model.Name;
+            product.Price = model.Price;
+            product.Description = model.Description;
+            product.Gender = model.Gender;
+            product.Collection = model.Collection;
+            product.IsFeatured = model.IsFeatured;
+            product.CategoryId = model.CategoryId;
+
+            // ── Cập nhật ảnh chính (nếu có file mới) ──
+            if (model.Image != null && model.Image.Length > 0)
+            {
+                var imageUrl = await SaveFileAsync(model.Image);
+
+                if (product.ProductVariants.Any())
+                {
+                    foreach (var variant in product.ProductVariants)
+                    {
+                        variant.ImageUrl = imageUrl;
+                    }
+                }
+                else
+                {
+                    product.ProductVariants.Add(new ProductVariant
+                    {
+                        Color = "Default",
+                        Size = "One Size",
+                        StockQuantity = 100,
+                        ImageUrl = imageUrl
+                    });
+                }
+            }
+
+            // ── Cập nhật danh sách size (ProductVariants) ──
+            if (model.Sizes != null)
+            {
+                var sizesList = model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+                
+                // Xóa các variant cũ không còn nằm trong danh sách size mới
+                var toRemove = product.ProductVariants.Where(v => !sizesList.Contains(v.Size)).ToList();
+                foreach (var v in toRemove)
+                {
+                    _context.ProductVariants.Remove(v);
+                }
+
+                // Lấy ảnh chính hiện tại của sản phẩm để gán cho các variant mới
+                var currentImageUrl = product.ProductVariants.FirstOrDefault()?.ImageUrl;
+
+                // Thêm các variant cho size mới chưa tồn tại
+                var existingSizes = product.ProductVariants.Select(v => v.Size).ToHashSet();
+                foreach (var size in sizesList)
+                {
+                    if (!existingSizes.Contains(size))
+                    {
+                        product.ProductVariants.Add(new ProductVariant
+                        {
+                            Color = "Default",
+                            Size = size,
+                            StockQuantity = 100,
+                            ImageUrl = currentImageUrl
+                        });
+                    }
+                }
+            }
+
+            // ── Cập nhật ảnh chi tiết (nếu có file mới) ──
+            if (model.DetailImageFiles != null && model.DetailImageFiles.Count > 0)
+            {
+                // Xóa tất cả ảnh chi tiết cũ trong DB
+                _context.ProductImages.RemoveRange(product.ProductImages);
+
+                // Thêm ảnh chi tiết mới
+                foreach (var detailFile in model.DetailImageFiles)
+                {
+                    if (detailFile.Length > 0)
+                    {
+                        var detailUrl = await SaveFileAsync(detailFile);
+                        product.ProductImages.Add(new ProductImage
+                        {
+                            ImageUrl = detailUrl
+                        });
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
@@ -215,9 +379,34 @@ public class ProductsController : ControllerBase
         }
     }
 
+    // ══════════════════════════════════════════════════
+    //  HELPER: Lưu file ảnh vào wwwroot/images/products/
+    //  Trả về đường dẫn tương đối: /images/products/xxx.ext
+    // ══════════════════════════════════════════════════
+    private async Task<string> SaveFileAsync(IFormFile file)
+    {
+        var folder = Path.Combine(_env.WebRootPath, "images", "products");
+        Directory.CreateDirectory(folder);
+
+        var ext = Path.GetExtension(file.FileName).ToLower();
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(folder, fileName);
+
+        using (var stream = System.IO.File.Create(filePath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        return $"/images/products/{fileName}";
+    }
+
     private bool ProductExists(int id) =>
         _context.Products.Any(e => e.Id == id);
 
+    // ══════════════════════════════════════════════════
+    //  HELPER: Map Product entity → ProductDto
+    //  Bao gồm cả ProductImages (ảnh chi tiết)
+    // ══════════════════════════════════════════════════
     private ProductDto MapToProductDto(Product p)
     {
         return new ProductDto
@@ -246,7 +435,44 @@ public class ProductsController : ControllerBase
                 Size = v.Size,
                 StockQuantity = v.StockQuantity,
                 ImageUrl = v.ImageUrl
-            }).ToList() ?? new List<ProductVariantDto>()
+            }).ToList() ?? new List<ProductVariantDto>(),
+            // Ảnh chi tiết sản phẩm
+            ProductImages = p.ProductImages?.Select(pi => new ProductImageDto
+            {
+                Id = pi.Id,
+                ImageUrl = pi.ImageUrl
+            }).ToList() ?? new List<ProductImageDto>()
         };
     }
+}
+
+/// <summary>
+/// Model nhận dữ liệu FormData từ Frontend
+/// Gồm thông tin chữ, 1 file ảnh chính, và danh sách file ảnh chi tiết
+/// </summary>
+public class ProductFormModel
+{
+    public int? Id { get; set; }
+    public string Name { get; set; } = null!;
+    public decimal Price { get; set; }
+    public string? Description { get; set; }
+    public string? Gender { get; set; }
+    public string? Collection { get; set; }
+    public bool IsFeatured { get; set; }
+    public int CategoryId { get; set; }
+
+    /// <summary>
+    /// File ảnh chính (1 file duy nhất)
+    /// </summary>
+    public IFormFile? Image { get; set; }
+
+    /// <summary>
+    /// Danh sách file ảnh chi tiết (cho phép upload nhiều file cùng lúc)
+    /// </summary>
+    public List<IFormFile>? DetailImageFiles { get; set; }
+
+    /// <summary>
+    /// Danh sách kích cỡ của sản phẩm (chuỗi phân cách bởi dấu phẩy)
+    /// </summary>
+    public string? Sizes { get; set; }
 }

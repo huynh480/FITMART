@@ -93,7 +93,8 @@ function App() {
 
               <Route path="/demo" element={<BackgroundPaths title="FITMART" />} />
               <Route path="/collections/*" element={<CollectionPage />} />
-              <Route path="/products/:slug" element={<ProductDetailPage />} />
+              <Route path="/category/:categoryId" element={<CollectionPage />} />
+              <Route path="/product/:slug" element={<ProductDetailPage />} />
               <Route path="/profile" element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
               <Route path="/wishlist" element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
             </Route>

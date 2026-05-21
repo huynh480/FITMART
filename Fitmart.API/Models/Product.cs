@@ -30,4 +30,9 @@ public class Product
     public Category? Category { get; set; }
 
     public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+
+    /// <summary>
+    /// Danh sách ảnh chi tiết của sản phẩm (quan hệ 1-N)
+    /// </summary>
+    public ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 }

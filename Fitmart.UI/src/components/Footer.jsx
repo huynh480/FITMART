@@ -131,9 +131,15 @@ const Footer = () => {
           <div>
             <p style={headerStyle}>MUA SẮM</p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              {['Nam', 'Nữ', 'Phụ kiện', 'Bộ sưu tập mới', 'Sale'].map(link => (
-                <Link key={link} to={`/collections/${link.toLowerCase().replace(/ /g, '-')}`} className="footer-link">
-                  {link}
+              {[
+                { label: 'Nam', href: '/collections/nam' },
+                { label: 'Nữ', href: '/collections/nu' },
+                { label: 'Phụ kiện', href: '/collections/phu-kien' },
+                { label: 'Bộ sưu tập mới', href: '/collections/new' },
+                { label: 'Sale', href: '/collections/sale' }
+              ].map(item => (
+                <Link key={item.label} to={item.href} className="footer-link">
+                  {item.label}
                 </Link>
               ))}
             </div>

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from 'antd';
 import { cn } from '@/lib/utils';
+import { API_BASE } from '../services/api';
 
 /**
  * ProductCard – FITMART
@@ -76,6 +77,12 @@ function ProductCardSkeleton() {
 function ProductImage({ src, alt }) {
   const [status, setStatus] = React.useState('loading'); // 'loading' | 'loaded' | 'error'
 
+  const finalSrc = src && (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) 
+    ? src 
+    : src 
+      ? `${API_BASE}${src}` 
+      : src;
+
   return (
     <div className="absolute inset-0 w-full h-full">
       {/* Skeleton while loading */}
@@ -105,9 +112,9 @@ function ProductImage({ src, alt }) {
       )}
 
       {/* Actual image – only render when src exists */}
-      {src && (
+      {finalSrc && (
         <img
-          src={src}
+          src={finalSrc}
           alt={alt}
           onLoad={() => setStatus('loaded')}
           onError={() => setStatus('error')}
@@ -280,7 +287,7 @@ export function ProductCard({
         <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100">
           {/* Product Image */}
           <Link
-            to={`/products/${slug}`}
+            to={`/product/${slug}`}
             tabIndex={0}
             aria-label={productName.length > 40 ? `${productName} - ${collectionName}` : undefined}
             className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-2"
@@ -365,7 +372,7 @@ export function ProductCard({
 
           {/* Product name — max 2 lines */}
           <Link
-            to={`/products/${slug}`}
+            to={`/product/${slug}`}
             tabIndex={-1}
             aria-hidden="true"
             className="no-underline line-clamp-2"
