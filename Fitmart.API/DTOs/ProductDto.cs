@@ -36,6 +36,7 @@ public class ProductImageDto
 {
     public int Id { get; set; }
     public string ImageUrl { get; set; } = null!;
+    public string? ColorName { get; set; }
 }
 
 public class CategoryDto

@@ -445,7 +445,7 @@ const Navbar = () => {
     { type: 'divider' },
     {
       key: 'orders',
-      label: <Link to="/profile" style={{ fontSize: '14px' }}>Đơn hàng của tôi</Link>,
+      label: <Link to="/my-orders" style={{ fontSize: '14px' }}>Đơn hàng của tôi</Link>,
     },
     {
       key: 'logout',

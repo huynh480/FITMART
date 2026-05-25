@@ -176,43 +176,44 @@ public class ProductsController : ControllerBase
                 CategoryId = model.CategoryId
             };
 
-            // Gán ảnh chính vào ProductVariant mặc định hoặc theo kích cỡ chọn
-            if (!string.IsNullOrEmpty(model.Sizes))
+            // Tạo cross-product Color × Size cho ProductVariants
+            var colorsList = !string.IsNullOrEmpty(model.Colors)
+                ? model.Colors.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(c => c.Trim()).ToList()
+                : new List<string> { "Default" };
+            var sizesList = !string.IsNullOrEmpty(model.Sizes)
+                ? model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList()
+                : new List<string> { "One Size" };
+
+            foreach (var color in colorsList)
             {
-                var sizesList = model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
                 foreach (var size in sizesList)
                 {
                     product.ProductVariants.Add(new ProductVariant
                     {
-                        Color = "Default",
+                        Color = color,
                         Size = size,
                         StockQuantity = 100,
                         ImageUrl = imageUrl
                     });
                 }
             }
-            else
-            {
-                product.ProductVariants.Add(new ProductVariant
-                {
-                    Color = "Default",
-                    Size = "One Size",
-                    StockQuantity = 100,
-                    ImageUrl = imageUrl
-                });
-            }
 
-            // ── Xử lý nhiều ảnh chi tiết (DetailImageFiles) ──
+            // ── Xử lý nhiều ảnh chi tiết (DetailImageFiles) + màu sắc (DetailImageColors) ──
             if (model.DetailImageFiles != null && model.DetailImageFiles.Count > 0)
             {
-                foreach (var detailFile in model.DetailImageFiles)
+                for (int i = 0; i < model.DetailImageFiles.Count; i++)
                 {
+                    var detailFile = model.DetailImageFiles[i];
                     if (detailFile.Length > 0)
                     {
                         var detailUrl = await SaveFileAsync(detailFile);
+                        var colorName = (model.DetailImageColors != null && i < model.DetailImageColors.Count)
+                            ? (string.IsNullOrWhiteSpace(model.DetailImageColors[i]) ? null : model.DetailImageColors[i])
+                            : null;
                         product.ProductImages.Add(new ProductImage
                         {
-                            ImageUrl = detailUrl
+                            ImageUrl = detailUrl,
+                            ColorName = colorName
                         });
                     }
                 }
@@ -290,53 +291,121 @@ public class ProductsController : ControllerBase
                 }
             }
 
-            // ── Cập nhật danh sách size (ProductVariants) ──
-            if (model.Sizes != null)
-            {
-                var sizesList = model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
-                
-                // Xóa các variant cũ không còn nằm trong danh sách size mới
-                var toRemove = product.ProductVariants.Where(v => !sizesList.Contains(v.Size)).ToList();
-                foreach (var v in toRemove)
-                {
-                    _context.ProductVariants.Remove(v);
-                }
+            // ── Cập nhật danh sách Color × Size (ProductVariants) ──
+            var colorsList = !string.IsNullOrEmpty(model.Colors)
+                ? model.Colors.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(c => c.Trim()).ToList()
+                : null;
+            var sizesList = model.Sizes != null
+                ? model.Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList()
+                : null;
 
-                // Lấy ảnh chính hiện tại của sản phẩm để gán cho các variant mới
+            if (colorsList != null || sizesList != null)
+            {
+                // Lấy ảnh chính hiện tại
                 var currentImageUrl = product.ProductVariants.FirstOrDefault()?.ImageUrl;
 
-                // Thêm các variant cho size mới chưa tồn tại
-                var existingSizes = product.ProductVariants.Select(v => v.Size).ToHashSet();
-                foreach (var size in sizesList)
+                // Nếu có ảnh mới upload, ưu tiên dùng ảnh mới
+                if (model.Image != null && model.Image.Length > 0)
                 {
-                    if (!existingSizes.Contains(size))
+                    // currentImageUrl đã được cập nhật ở trên
+                    currentImageUrl = product.ProductVariants.FirstOrDefault()?.ImageUrl ?? currentImageUrl;
+                }
+
+                var finalColors = colorsList ?? product.ProductVariants.Select(v => v.Color).Distinct().ToList();
+                var finalSizes = sizesList ?? product.ProductVariants.Select(v => v.Size).Distinct().ToList();
+
+                // Tạo set các combo mong muốn
+                var desiredCombos = new HashSet<string>();
+                foreach (var color in finalColors)
+                    foreach (var size in finalSizes)
+                        desiredCombos.Add($"{color}|{size}");
+
+                // Xóa variant không nằm trong danh sách mới
+                var toRemove = product.ProductVariants
+                    .Where(v => !desiredCombos.Contains($"{v.Color}|{v.Size}"))
+                    .ToList();
+                foreach (var v in toRemove)
+                    _context.ProductVariants.Remove(v);
+
+                // Thêm variant mới chưa tồn tại
+                var existingCombos = product.ProductVariants
+                    .Where(v => !toRemove.Contains(v))
+                    .Select(v => $"{v.Color}|{v.Size}")
+                    .ToHashSet();
+
+                foreach (var color in finalColors)
+                {
+                    foreach (var size in finalSizes)
                     {
-                        product.ProductVariants.Add(new ProductVariant
+                        var key = $"{color}|{size}";
+                        if (!existingCombos.Contains(key))
                         {
-                            Color = "Default",
-                            Size = size,
-                            StockQuantity = 100,
-                            ImageUrl = currentImageUrl
-                        });
+                            product.ProductVariants.Add(new ProductVariant
+                            {
+                                Color = color,
+                                Size = size,
+                                StockQuantity = 100,
+                                ImageUrl = currentImageUrl
+                            });
+                        }
                     }
                 }
             }
 
-            // ── Cập nhật ảnh chi tiết (nếu có file mới) ──
+            // ── Cập nhật ảnh chi tiết và màu sắc ──
+            var existingDbImages = product.ProductImages.ToList();
+            var imagesToKeep = new List<ExistingImageModel>();
+
+            if (!string.IsNullOrEmpty(model.ExistingImagesJson))
+            {
+                try
+                {
+                    imagesToKeep = System.Text.Json.JsonSerializer.Deserialize<List<ExistingImageModel>>(
+                        model.ExistingImagesJson,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    ) ?? new List<ExistingImageModel>();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error parsing ExistingImagesJson: {ex.Message}");
+                }
+            }
+
+            // Xoá các ảnh trong DB mà không có trong danh sách cần giữ lại
+            var urlsToKeep = imagesToKeep.Select(img => img.ImageUrl).ToHashSet();
+            var toDelete = existingDbImages.Where(img => !urlsToKeep.Contains(img.ImageUrl)).ToList();
+            foreach (var img in toDelete)
+            {
+                _context.ProductImages.Remove(img);
+                product.ProductImages.Remove(img);
+            }
+
+            // Cập nhật màu sắc cho các ảnh cũ được giữ lại
+            foreach (var dbImg in product.ProductImages)
+            {
+                var keepInfo = imagesToKeep.FirstOrDefault(img => img.ImageUrl == dbImg.ImageUrl);
+                if (keepInfo != null)
+                {
+                    dbImg.ColorName = string.IsNullOrWhiteSpace(keepInfo.ColorName) ? null : keepInfo.ColorName;
+                }
+            }
+
+            // Thêm các ảnh chi tiết mới với ColorName
             if (model.DetailImageFiles != null && model.DetailImageFiles.Count > 0)
             {
-                // Xóa tất cả ảnh chi tiết cũ trong DB
-                _context.ProductImages.RemoveRange(product.ProductImages);
-
-                // Thêm ảnh chi tiết mới
-                foreach (var detailFile in model.DetailImageFiles)
+                for (int i = 0; i < model.DetailImageFiles.Count; i++)
                 {
+                    var detailFile = model.DetailImageFiles[i];
                     if (detailFile.Length > 0)
                     {
                         var detailUrl = await SaveFileAsync(detailFile);
+                        var colorName = (model.DetailImageColors != null && i < model.DetailImageColors.Count)
+                            ? (string.IsNullOrWhiteSpace(model.DetailImageColors[i]) ? null : model.DetailImageColors[i])
+                            : null;
                         product.ProductImages.Add(new ProductImage
                         {
-                            ImageUrl = detailUrl
+                            ImageUrl = detailUrl,
+                            ColorName = colorName
                         });
                     }
                 }
@@ -436,11 +505,12 @@ public class ProductsController : ControllerBase
                 StockQuantity = v.StockQuantity,
                 ImageUrl = v.ImageUrl
             }).ToList() ?? new List<ProductVariantDto>(),
-            // Ảnh chi tiết sản phẩm
+            // Ảnh chi tiết sản phẩm (bao gồm ColorName)
             ProductImages = p.ProductImages?.Select(pi => new ProductImageDto
             {
                 Id = pi.Id,
-                ImageUrl = pi.ImageUrl
+                ImageUrl = pi.ImageUrl,
+                ColorName = pi.ColorName
             }).ToList() ?? new List<ProductImageDto>()
         };
     }
@@ -472,7 +542,28 @@ public class ProductFormModel
     public List<IFormFile>? DetailImageFiles { get; set; }
 
     /// <summary>
-    /// Danh sách kích cỡ của sản phẩm (chuỗi phân cách bởi dấu phẩy)
+    /// Danh sách kích cỡ của sản phẩm (chuỗi phân cách bởi dấu phẩy, VD: "S,M,L,XL")
     /// </summary>
     public string? Sizes { get; set; }
+
+    /// <summary>
+    /// Danh sách màu sắc của sản phẩm (chuỗi phân cách bởi dấu phẩy, VD: "Đen:#000000,Trắng:#ffffff")
+    /// </summary>
+    public string? Colors { get; set; }
+
+    /// <summary>
+    /// Danh sách màu sắc gắn với từng ảnh chi tiết (1:1 với DetailImageFiles theo index)
+    /// </summary>
+    public List<string>? DetailImageColors { get; set; }
+
+    /// <summary>
+    /// Chuỗi JSON đại diện cho danh sách ảnh chi tiết cũ cần giữ lại cùng màu sắc tương ứng
+    /// </summary>
+    public string? ExistingImagesJson { get; set; }
+}
+
+public class ExistingImageModel
+{
+    public string ImageUrl { get; set; } = null!;
+    public string? ColorName { get; set; }
 }

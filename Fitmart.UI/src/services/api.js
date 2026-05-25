@@ -113,15 +113,22 @@ export const categoriesApi = {
    Admin list/update dùng mock tạm, sẵn sàng khi API có thêm endpoint.
    ═══════════════════════════════════════════ */
 export const ordersApi = {
-  // Placeholder — thay thế khi backend có GET /api/orders (admin)
-  getAll: () => Promise.resolve([]),
+  // GET /api/orders — lấy danh sách đơn hàng (admin)
+  getAll: () => request('/api/orders'),
+
+  // GET /api/orders/my-orders — lấy danh sách đơn hàng của khách hàng hiện tại
+  getMyOrders: (userId) => request(`/api/orders/my-orders?userId=${userId}`),
 
   // POST /api/orders — dùng cho storefront, không phải admin
   create: (body) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify(body) }),
 
-  // Placeholder cho PUT /api/orders/:id/status
-  updateStatus: (id, status) => Promise.resolve({ id, status }),
+  // PUT /api/orders/:id/status — cập nhật trạng thái đơn hàng (admin hoặc khách hàng hủy)
+  updateStatus: (id, status) =>
+    request(`/api/orders/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
 };
 
 /* ═══════════════════════════════════════════

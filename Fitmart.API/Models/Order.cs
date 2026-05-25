@@ -16,6 +16,22 @@ public class Order
     public User? User { get; set; }
 
     [Required]
+    [MaxLength(200)]
+    public string CustomerName { get; set; } = "";
+
+    [Required]
+    [MaxLength(50)]
+    public string Phone { get; set; } = "";
+
+    [Required]
+    [MaxLength(500)]
+    public string Address { get; set; } = "";
+
+    [Required]
+    [MaxLength(50)]
+    public string PaymentMethod { get; set; } = "cod";
+
+    [Required]
     [Column(TypeName = "decimal(18,2)")]
     public decimal TotalAmount { get; set; }
 

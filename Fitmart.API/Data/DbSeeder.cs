@@ -30,6 +30,18 @@ public static class DbSeeder
         context.Database.EnsureCreated();
 
         // ════════════════════════════════════════════════════════
+        //  SEED USERS
+        // ════════════════════════════════════════════════════════
+        if (!context.Users.Any())
+        {
+            context.Users.AddRange(
+                new User { FullName = "Nguyễn Văn Test", Email = "test@fitmart.vn", Password = "123456", Role = "Customer" },
+                new User { FullName = "Admin FITMART", Email = "admin@fitmart.vn", Password = "admin123", Role = "Admin" }
+            );
+            context.SaveChanges();
+        }
+
+        // ════════════════════════════════════════════════════════
         //  SEED CATEGORIES — theo đúng cấu trúc navMenuData.js
         // ════════════════════════════════════════════════════════
         if (!context.Categories.Any())

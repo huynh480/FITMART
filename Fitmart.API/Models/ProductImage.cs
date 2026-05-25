@@ -20,6 +20,12 @@ public class ProductImage
     public string ImageUrl { get; set; } = null!;
 
     /// <summary>
+    /// Tên màu sắc gắn với ảnh này (VD: "Đen:#000000").
+    /// Null = ảnh chung hiển thị cho tất cả màu.
+    /// </summary>
+    public string? ColorName { get; set; }
+
+    /// <summary>
     /// Khóa ngoại liên kết đến Product
     /// </summary>
     [Required]

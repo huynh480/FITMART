@@ -17,7 +17,18 @@ const statusOptions = [
   { value: 'inactive',   label: 'Ngừng bán' },
   { value: 'outofstock', label: 'Hết hàng' },
 ];
-const colorOptions = ['Đen','Trắng','Xám','Xanh navy','Xanh rêu','Đỏ','Nâu','Be','Hồng','Tím'];
+const colorOptions = [
+  { name: 'Đen',        hex: '#000000' },
+  { name: 'Xám đậm',   hex: '#333333' },
+  { name: 'Trắng',      hex: '#ffffff' },
+  { name: 'Xanh rêu',   hex: '#4f5d4e' },
+  { name: 'Hồng phấn',  hex: '#f3b0c3' },
+  { name: 'Xanh dương', hex: '#1a365d' },
+  { name: 'Đỏ đô',     hex: '#8b0000' },
+  { name: 'Nâu',        hex: '#5c4033' },
+  { name: 'Be',         hex: '#d2b48c' },
+  { name: 'Tím',        hex: '#5b2c6f' },
+];
 const sizeOptions  = ['XS','S','M','L','XL','XXL'];
 const genderOptions = [
   { value: 'Nam', label: 'Nam' },
@@ -55,6 +66,10 @@ export default function ProductsPage() {
   const [detailFileList, setDetailFileList] = useState([]);
   // State cho kích cỡ được chọn (Size)
   const [selectedSizes, setSelectedSizes] = useState([]);
+  // State cho màu sắc được chọn (Colors)
+  const [selectedColors, setSelectedColors] = useState([]);
+  // State cho màu sắc gắn với từng ảnh chi tiết { [file.uid]: 'Tên màu' }
+  const [detailFileColors, setDetailFileColors] = useState({});
 
   const [form] = Form.useForm();
 
@@ -98,6 +113,8 @@ export default function ProductsPage() {
     setFileList([]);
     setDetailFileList([]);
     setSelectedSizes([]);
+    setSelectedColors([]);
+    setDetailFileColors({});
     form.resetFields();
     setModalOpen(true);
   };
@@ -121,20 +138,29 @@ export default function ProductsPage() {
       setFileList([]);
     }
 
-    // Load ảnh chi tiết hiện có từ productImages
+    // Load ảnh chi tiết hiện có từ productImages (bao gồm colorName)
     if (p.productImages && p.productImages.length > 0) {
-      setDetailFileList(
-        p.productImages.map((img, index) => ({
-          uid: `detail-${img.id || index}`,
-          name: `detail-${index + 1}.jpg`,
-          status: 'done',
-          url: img.imageUrl?.startsWith('http')
-            ? img.imageUrl
-            : `${API_BASE}${img.imageUrl}`,
-        }))
-      );
+      const detailFiles = p.productImages.map((img, index) => ({
+        uid: `detail-${img.id || index}`,
+        name: `detail-${index + 1}.jpg`,
+        status: 'done',
+        url: img.imageUrl?.startsWith('http')
+          ? img.imageUrl
+          : `${API_BASE}${img.imageUrl}`,
+      }));
+      setDetailFileList(detailFiles);
+
+      // Đổ ngược màu sắc của từng ảnh chi tiết
+      const colorMap = {};
+      p.productImages.forEach((img, index) => {
+        if (img.colorName) {
+          colorMap[`detail-${img.id || index}`] = img.colorName;
+        }
+      });
+      setDetailFileColors(colorMap);
     } else {
       setDetailFileList([]);
+      setDetailFileColors({});
     }
 
     // Load danh sách size từ các variant hiện có
@@ -142,6 +168,20 @@ export default function ProductsPage() {
       ? [...new Set(p.productVariants.map(v => v.size))].filter(Boolean)
       : [];
     setSelectedSizes(currentSizes);
+
+    // Load danh sách màu sắc từ các variant hiện có
+    const currentColors = p.productVariants
+      ? [...new Set(p.productVariants.map(v => v.color))].filter(c => c && c !== 'Default')
+      : [];
+    // Map lại về dạng 'Tên:#hex' nếu trùng với colorOptions, nếu không giữ nguyên tên
+    const mappedColors = currentColors.map(colorStr => {
+      // Nếu đã ở dạng 'Tên:#hex', giữ nguyên
+      if (colorStr.includes(':')) return colorStr;
+      // Tìm trong colorOptions
+      const match = colorOptions.find(c => c.name === colorStr);
+      return match ? `${match.name}:${match.hex}` : colorStr;
+    });
+    setSelectedColors(mappedColors);
 
     form.setFieldsValue({
       name:              p.name,
@@ -159,6 +199,8 @@ export default function ProductsPage() {
   const closeModal = () => {
     setModalOpen(false);
     setSelectedSizes([]);
+    setSelectedColors([]);
+    setDetailFileColors({});
     form.resetFields();
   };
 
@@ -187,16 +229,39 @@ export default function ProductsPage() {
         formData.append('Sizes', '');
       }
 
+      // Gắn danh sách màu sắc (Colors)
+      if (selectedColors && selectedColors.length > 0) {
+        formData.append('Colors', selectedColors.join(','));
+      } else {
+        formData.append('Colors', '');
+      }
+
       // Gắn file ảnh chính (nếu có file mới từ máy tính)
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append('image', fileList[0].originFileObj);
       }
 
-      // Gắn danh sách file ảnh chi tiết (chỉ các file mới từ máy tính)
+      // Gắn danh sách ảnh chi tiết cũ cần giữ lại và màu tương ứng
+      const existingImages = detailFileList
+        .filter(f => !f.originFileObj)
+        .map(f => {
+          let url = f.url || '';
+          if (url.startsWith(API_BASE)) {
+            url = url.substring(API_BASE.length);
+          }
+          return {
+            imageUrl: url,
+            colorName: detailFileColors[f.uid] || null
+          };
+        });
+      formData.append('ExistingImagesJson', JSON.stringify(existingImages));
+
+      // Gắn danh sách file ảnh chi tiết mới + màu sắc tương ứng
       const newDetailFiles = detailFileList.filter(f => f.originFileObj);
       if (newDetailFiles.length > 0) {
         newDetailFiles.forEach(f => {
           formData.append('DetailImageFiles', f.originFileObj);
+          formData.append('DetailImageColors', detailFileColors[f.uid] || '');
         });
       }
 
@@ -380,6 +445,62 @@ export default function ProductsPage() {
                 </Select>
               </Form.Item>
             </div>
+
+            {/* ── Màu sắc ── */}
+            <Form.Item label="Màu sắc" style={{ marginBottom: 0 }}>
+              <Select
+                mode="multiple"
+                placeholder="Chọn màu sắc sản phẩm..."
+                value={selectedColors}
+                onChange={setSelectedColors}
+                style={{ width: '100%' }}
+                allowClear
+                optionLabelProp="label"
+              >
+                {colorOptions.map(c => {
+                  const val = `${c.name}:${c.hex}`;
+                  return (
+                    <Option key={val} value={val} label={c.name}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          backgroundColor: c.hex,
+                          border: '1px solid #d0d0d0',
+                          flexShrink: 0,
+                        }} />
+                        <span>{c.name}</span>
+                        <span style={{ color: '#999', fontSize: 11 }}>{c.hex}</span>
+                      </div>
+                    </Option>
+                  );
+                })}
+              </Select>
+
+              {/* Preview các màu đã chọn */}
+              {selectedColors.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                  {selectedColors.map(colorStr => {
+                    const [name, hex] = colorStr.includes(':') ? colorStr.split(':') : [colorStr, '#ccc'];
+                    return (
+                      <div key={colorStr} style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        background: '#fafafa', border: '1px solid #e8e8e8',
+                        borderRadius: 6, padding: '4px 10px 4px 6px', fontSize: 12,
+                      }}>
+                        <span style={{
+                          display: 'inline-block', width: 14, height: 14, borderRadius: '50%',
+                          backgroundColor: hex, border: '1px solid #d0d0d0',
+                        }} />
+                        <span style={{ color: '#1b1b1b', fontWeight: 500 }}>{name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Form.Item>
           </div>
 
           {/* ── Ảnh chính (tối đa 1 ảnh) ── */}
@@ -402,21 +523,59 @@ export default function ProductsPage() {
             </Upload>
           </div>
 
-          {/* ── Ảnh chi tiết (cho phép nhiều ảnh) ── */}
+          {/* ── Ảnh chi tiết (cho phép nhiều ảnh) + gán màu cho từng ảnh ── */}
           <div style={sec}><div style={secT}>📸 Ảnh chi tiết sản phẩm (nhiều ảnh)</div>
             <p style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
-              Chọn nhiều file cùng lúc để upload. Ảnh sẽ được hiển thị trong trang chi tiết sản phẩm.
+              Chọn nhiều file cùng lúc để upload. Gán màu cho từng ảnh để hiển thị theo màu ở trang chi tiết.
             </p>
             <Upload
               listType="picture-card"
               fileList={detailFileList}
-              multiple                     /* Cho phép chọn nhiều file cùng lúc */
-              beforeUpload={() => false}   /* Tắt tự động upload — chờ submit */
+              multiple
+              beforeUpload={() => false}
               onChange={({ fileList: newList }) => {
                 setDetailFileList(newList);
               }}
               onRemove={(file) => {
                 setDetailFileList(prev => prev.filter(f => f.uid !== file.uid));
+                setDetailFileColors(prev => {
+                  const next = { ...prev };
+                  delete next[file.uid];
+                  return next;
+                });
+              }}
+              itemRender={(originNode, file) => {
+                const colorVal = detailFileColors[file.uid] || '';
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                    {originNode}
+                    <Select
+                      size="small"
+                      placeholder="Màu"
+                      value={colorVal || undefined}
+                      onChange={(val) => setDetailFileColors(prev => ({ ...prev, [file.uid]: val }))}
+                      allowClear
+                      onClear={() => setDetailFileColors(prev => { const next = { ...prev }; delete next[file.uid]; return next; })}
+                      style={{ width: '100%', marginTop: 4, fontSize: 11 }}
+                      popupMatchSelectWidth={false}
+                    >
+                      {selectedColors.map(colorStr => {
+                        const [name, hex] = colorStr.includes(':') ? colorStr.split(':') : [colorStr, '#ccc'];
+                        return (
+                          <Option key={colorStr} value={colorStr}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{
+                                display: 'inline-block', width: 12, height: 12, borderRadius: '50%',
+                                backgroundColor: hex, border: '1px solid #d0d0d0', flexShrink: 0,
+                              }} />
+                              <span style={{ fontSize: 11 }}>{name}</span>
+                            </div>
+                          </Option>
+                        );
+                      })}
+                    </Select>
+                  </div>
+                );
               }}
             >
               <div style={{ textAlign: 'center' }}>

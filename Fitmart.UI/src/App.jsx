@@ -6,6 +6,9 @@ import CollectionPage from './pages/CollectionPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import CheckoutPage from './pages/CheckoutPage';
+import ThankYouPage from './pages/ThankYouPage';
+import MyOrdersPage from './pages/MyOrdersPage';
 import { BackgroundPaths } from './components/ui/background-paths';
 import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
@@ -94,7 +97,10 @@ function App() {
               <Route path="/demo" element={<BackgroundPaths title="FITMART" />} />
               <Route path="/collections/*" element={<CollectionPage />} />
               <Route path="/category/:categoryId" element={<CollectionPage />} />
-              <Route path="/product/:slug" element={<ProductDetailPage />} />
+              <Route path="/products/:slug" element={<ProductDetailPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
+              <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/profile" element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
               <Route path="/wishlist" element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
             </Route>

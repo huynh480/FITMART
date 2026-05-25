@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Modal } from 'antd';
 import { cn } from '@/lib/utils';
 import { API_BASE } from '../services/api';
+import { useCart } from '../hooks/useCart';
 
 /**
  * ProductCard – FITMART
@@ -134,12 +135,14 @@ function ProductImage({ src, alt }) {
 ───────────────────────────────────────────── */
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
-function SizeSelectorModal({ open, onClose, productName }) {
+function SizeSelectorModal({ open, onClose, productName, onSelectSize }) {
   const [selectedSize, setSelectedSize] = React.useState(null);
 
   const handleConfirm = () => {
     if (!selectedSize) return;
-    // TODO: connect to cart store
+    if (onSelectSize) {
+      onSelectSize(selectedSize);
+    }
     onClose();
     setSelectedSize(null);
   };
@@ -249,9 +252,32 @@ export function ProductCard({
   isLoading = false,
   className,
 }) {
+  const { addToCart, openCart } = useCart();
   const [wishlisted, setWishlisted] = React.useState(false);
   const [wishPulse, setWishPulse] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
+
+  const handleSelectSize = (size) => {
+    const numericPrice = typeof price === 'number' 
+      ? price 
+      : (parseInt(price.replace(/[^0-9]/g, '')) || 0);
+
+    const productObj = {
+      id: id,
+      slug: slug,
+      name: productName,
+      price: numericPrice,
+    };
+
+    const defaultColor = {
+      id: 'default',
+      name: 'Mặc định',
+      images: [image]
+    };
+
+    addToCart(productObj, size, defaultColor, 1);
+    openCart();
+  };
 
   const imageAlt = `${productName} - ${collectionName}`;
   const wishlistLabel = wishlisted ? 'Đã yêu thích' : 'Thêm vào yêu thích';
@@ -287,7 +313,7 @@ export function ProductCard({
         <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100">
           {/* Product Image */}
           <Link
-            to={`/product/${slug}`}
+            to={`/products/${slug}`}
             tabIndex={0}
             aria-label={productName.length > 40 ? `${productName} - ${collectionName}` : undefined}
             className="absolute inset-0 focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-2"
@@ -372,7 +398,7 @@ export function ProductCard({
 
           {/* Product name — max 2 lines */}
           <Link
-            to={`/product/${slug}`}
+            to={`/products/${slug}`}
             tabIndex={-1}
             aria-hidden="true"
             className="no-underline line-clamp-2"
@@ -400,6 +426,7 @@ export function ProductCard({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         productName={productName}
+        onSelectSize={handleSelectSize}
       />
     </>
   );

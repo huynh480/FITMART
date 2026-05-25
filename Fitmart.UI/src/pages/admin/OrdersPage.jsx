@@ -5,112 +5,6 @@ import { ordersApi } from '../../services/api';
 
 const { Option } = Select;
 
-/* ─── Mock data ─── */
-const initialOrders = [
-  {
-    id: 'ĐH-20260516001',
-    customer: 'Nguyễn Minh Tuấn',
-    email: 'tuan.nm@gmail.com',
-    address: '123 Nguyễn Huệ, Q.1, TP.HCM',
-    items: [
-      { name: 'Legacy Hoodie', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'L', color: 'Đen', qty: 1, price: 690000 },
-      { name: 'Power Jogger', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'M', color: 'Xanh navy', qty: 1, price: 750000 },
-    ],
-    subtotal: 1440000,
-    shipping: 30000,
-    total: 1470000,
-    status: 'pending',
-    date: '16/05/2026',
-  },
-  {
-    id: 'ĐH-20260516002',
-    customer: 'Trần Thị Mai',
-    email: 'mai.tt@gmail.com',
-    address: '456 Lê Lợi, Q.3, TP.HCM',
-    items: [
-      { name: 'Sports Bra Everyday', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'S', color: 'Hồng', qty: 2, price: 520000 },
-      { name: 'Vital Legging Nữ', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'S', color: 'Đen', qty: 1, price: 680000 },
-    ],
-    subtotal: 1720000,
-    shipping: 0,
-    total: 1720000,
-    status: 'shipping',
-    date: '16/05/2026',
-  },
-  {
-    id: 'ĐH-20260515003',
-    customer: 'Lê Hoàng Nam',
-    email: 'nam.lh@gmail.com',
-    address: '789 Trần Hưng Đạo, Q.5, TP.HCM',
-    items: [
-      { name: 'Studio T-Shirt', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'XL', color: 'Trắng', qty: 3, price: 350000 },
-    ],
-    subtotal: 1050000,
-    shipping: 30000,
-    total: 1080000,
-    status: 'completed',
-    date: '15/05/2026',
-  },
-  {
-    id: 'ĐH-20260515004',
-    customer: 'Phạm Quỳnh Anh',
-    email: 'anh.pq@gmail.com',
-    address: '12 Hai Bà Trưng, Q.1, TP.HCM',
-    items: [
-      { name: 'Gym Duffel Bag', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: '-', color: 'Đen', qty: 1, price: 799000 },
-      { name: 'GS Tank Top', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'M', color: 'Trắng', qty: 2, price: 280000 },
-    ],
-    subtotal: 1359000,
-    shipping: 0,
-    total: 1359000,
-    status: 'completed',
-    date: '15/05/2026',
-  },
-  {
-    id: 'ĐH-20260514005',
-    customer: 'Vũ Đức Trung',
-    email: 'trung.vd@gmail.com',
-    address: '88 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM',
-    items: [
-      { name: 'Legacy Hoodie', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'XL', color: 'Xám', qty: 1, price: 690000 },
-    ],
-    subtotal: 690000,
-    shipping: 30000,
-    total: 720000,
-    status: 'cancelled',
-    date: '14/05/2026',
-  },
-  {
-    id: 'ĐH-20260514006',
-    customer: 'Đặng Thu Hà',
-    email: 'ha.dt@gmail.com',
-    address: '55 Võ Văn Tần, Q.3, TP.HCM',
-    items: [
-      { name: 'Crop Top Vital', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'M', color: 'Trắng', qty: 1, price: 420000 },
-      { name: 'Vital Legging Nữ', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'M', color: 'Hồng', qty: 1, price: 680000 },
-    ],
-    subtotal: 1100000,
-    shipping: 30000,
-    total: 1130000,
-    status: 'pending',
-    date: '14/05/2026',
-  },
-  {
-    id: 'ĐH-20260513007',
-    customer: 'Bùi Thanh Sơn',
-    email: 'son.bt@gmail.com',
-    address: '200 Cách Mạng Tháng 8, Q.10, TP.HCM',
-    items: [
-      { name: 'Power Jogger', image: 'https://res.cloudinary.com/dvbbfcxw4/image/upload/v1746733993/fitmart/nxkmz94zovr0lnzwv1rg.jpg', size: 'L', color: 'Đen', qty: 2, price: 750000 },
-    ],
-    subtotal: 1500000,
-    shipping: 0,
-    total: 1500000,
-    status: 'shipping',
-    date: '13/05/2026',
-  },
-];
-
 const statusConfig = {
   pending:   { label: 'Chờ xác nhận', color: '#faad14', bg: '#fffbe6', border: '#ffe58f' },
   shipping:  { label: 'Đang giao',    color: '#1890ff', bg: '#e6f7ff', border: '#91d5ff' },
@@ -131,25 +25,31 @@ const formatVND = (v) => v.toLocaleString('vi-VN') + ' ₫';
  * OrdersPage — /admin/orders
  */
 export default function OrdersPage() {
-  // Dùng mock data làm fallback — sẵn sàng swap khi API có GET /api/orders (admin)
-  const [orders, setOrders]           = useState(initialOrders);
+  const [orders, setOrders]           = useState([]);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [search, setSearch]           = useState('');
   const [filterStatus, setFilterStatus] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
 
-  /* ── Fetch orders (stub — replace when backend has GET /api/orders) ── */
+  /* ── Fetch orders from Backend ── */
   const fetchOrders = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true); 
+    setError(null);
     try {
       const data = await ordersApi.getAll();
-      // Nếu API trả về dữ liệu thật thì dùng, còn không giữ mock
-      if (Array.isArray(data) && data.length > 0) setOrders(data);
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else {
+        setOrders([]);
+      }
     } catch (e) {
-      // Không hiện lỗi nếu endpoint chưa có — dùng mock data
-      console.warn('Orders API chưa sẵn sàng, dùng mock data:', e.message);
-    } finally { setLoading(false); }
+      console.error('Lỗi khi tải danh sách đơn hàng:', e);
+      setError('Lỗi kết nối máy chủ. Không thể lấy danh sách đơn hàng.');
+      message.error(`Không thể lấy danh sách đơn hàng: ${e.message}`);
+    } finally { 
+      setLoading(false); 
+    }
   }, []);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);

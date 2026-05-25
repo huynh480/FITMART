@@ -24,6 +24,14 @@ public class OrderDetail
     public int Quantity { get; set; }
 
     [Required]
+    [MaxLength(50)]
+    public string Size { get; set; } = "M";
+
+    [Required]
+    [MaxLength(100)]
+    public string Color { get; set; } = "Mặc định";
+
+    [Required]
     [Column(TypeName = "decimal(18,2)")]
     public decimal UnitPrice { get; set; }
 }
