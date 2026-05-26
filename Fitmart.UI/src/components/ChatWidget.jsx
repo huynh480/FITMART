@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { HubConnectionBuilder, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { chatApi } from '../services/api';
 import './ChatWidget.css';
 
 /* ── SVG Icons ── */
@@ -57,9 +58,21 @@ const messageVariants = {
 
 const SIGNALR_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5049'}/chatHub`;
 
+/** Tạo roomId duy nhất cho khách hàng */
+function getRoomId(user) {
+  if (user?.id) return `user_${user.id}`;
+  // Guest: dùng sessionStorage để giữ ID trong phiên
+  let guestId = sessionStorage.getItem('chat_guest_id');
+  if (!guestId) {
+    guestId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    sessionStorage.setItem('chat_guest_id', guestId);
+  }
+  return guestId;
+}
+
 /**
  * ChatWidget — Floating real-time chat cho khách hàng.
- * Kết nối SignalR tới backend, gửi/nhận tin nhắn.
+ * Kết nối SignalR tới backend, gửi/nhận tin nhắn theo room.
  */
 export default function ChatWidget() {
   const { user } = useAuth();
@@ -69,12 +82,18 @@ export default function ChatWidget() {
   const [connection, setConnection] = useState(null);
   const [connectionState, setConnectionState] = useState('Disconnected');
   const [hasUnread, setHasUnread] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const isOpenRef = useRef(isOpen);
 
-  /* ── Tên hiển thị ── */
+  /* ── Derived values ── */
   const displayName = user?.name || 'Khách';
+  const roomId = getRoomId(user);
+
+  // Keep ref in sync
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
 
   /* ── Auto-scroll xuống cuối khi có tin mới ── */
   const scrollToBottom = useCallback(() => {
@@ -93,48 +112,82 @@ export default function ChatWidget() {
     }
   }, [isOpen]);
 
+  /* ── Load lịch sử chat khi mở lần đầu ── */
+  useEffect(() => {
+    if (isOpen && !historyLoaded) {
+      chatApi.getMessages(roomId)
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setMessages(data.map(m => ({
+              id: m.id,
+              sender: m.senderName,
+              senderRole: m.senderRole,
+              text: m.content,
+              time: new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+              isMine: m.senderRole === 'Customer',
+            })));
+          }
+          setHistoryLoaded(true);
+        })
+        .catch(err => {
+          console.error('Load chat history failed:', err);
+          setHistoryLoaded(true);
+        });
+    }
+  }, [isOpen, historyLoaded, roomId]);
+
   /* ── Thiết lập kết nối SignalR ── */
   useEffect(() => {
     const conn = new HubConnectionBuilder()
       .withUrl(SIGNALR_URL)
-      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // Exponential backoff
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(LogLevel.Information)
       .build();
 
-    // Lắng nghe tin nhắn từ server
-    conn.on('ReceiveMessage', (senderName, message) => {
+    // Lắng nghe tin nhắn từ server (cả Admin reply)
+    conn.on('ReceiveMessage', (data) => {
+      if (data.roomId !== roomId) return; // Chỉ nhận tin của room mình
+
       const newMsg = {
         id: Date.now() + Math.random(),
-        sender: senderName,
-        text: message,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        isMine: senderName === displayName,
+        sender: data.senderName,
+        senderRole: data.senderRole,
+        text: data.content,
+        time: new Date(data.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        isMine: data.senderRole === 'Customer',
       };
 
       setMessages(prev => {
-        // Tránh duplicate — nếu tin nhắn gần nhất cùng nội dung & cùng người gửi & trong 1s → bỏ qua
+        // Dedup: check last message
         const last = prev[prev.length - 1];
         if (last && last.sender === newMsg.sender && last.text === newMsg.text &&
-            Math.abs(newMsg.id - last.id) < 1000) {
+            Math.abs(newMsg.id - last.id) < 1500) {
           return prev;
         }
         return [...prev, newMsg];
       });
 
-      // Nếu chat đang đóng → hiện unread indicator
-      setHasUnread(prev => true);
+      // Unread indicator khi chat đang đóng
+      if (!isOpenRef.current) {
+        setHasUnread(true);
+      }
     });
 
     // Connection state tracking
     conn.onreconnecting(() => setConnectionState('Reconnecting'));
-    conn.onreconnected(() => setConnectionState('Connected'));
+    conn.onreconnected(() => {
+      setConnectionState('Connected');
+      // Re-join room sau khi reconnect
+      conn.invoke('JoinRoom', roomId).catch(() => {});
+    });
     conn.onclose(() => setConnectionState('Disconnected'));
 
-    // Start connection
+    // Start connection + join room
     conn.start()
       .then(() => {
         setConnectionState('Connected');
-        console.log('✅ SignalR connected to', SIGNALR_URL);
+        conn.invoke('JoinRoom', roomId).catch(() => {});
+        console.log('✅ SignalR connected to', SIGNALR_URL, 'room:', roomId);
       })
       .catch(err => {
         setConnectionState('Disconnected');
@@ -143,10 +196,7 @@ export default function ChatWidget() {
 
     setConnection(conn);
 
-    // Cleanup khi component unmount
-    return () => {
-      conn.stop();
-    };
+    return () => { conn.stop(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,7 +206,7 @@ export default function ChatWidget() {
     if (!trimmed || !connection || connection.state !== HubConnectionState.Connected) return;
 
     try {
-      await connection.invoke('SendMessageToAdmin', displayName, trimmed);
+      await connection.invoke('SendMessageToAdmin', roomId, displayName, trimmed);
       setInput('');
     } catch (err) {
       console.error('Gửi tin nhắn thất bại:', err);
@@ -216,7 +266,6 @@ export default function ChatWidget() {
 
             {/* Messages */}
             <div className="chat-messages" id="chat-messages-area">
-              {/* Welcome message khi chưa có tin */}
               {messages.length === 0 && (
                 <div className="chat-welcome">
                   <div className="chat-welcome__icon">
@@ -237,6 +286,11 @@ export default function ChatWidget() {
                   initial="hidden"
                   animate="visible"
                 >
+                  {!msg.isMine && (
+                    <span className="chat-msg__sender">
+                      {msg.senderRole === 'Bot' ? '🤖' : '🛡️'} {msg.sender}
+                    </span>
+                  )}
                   {msg.text}
                   <span className="chat-msg__time">{msg.time}</span>
                 </motion.div>

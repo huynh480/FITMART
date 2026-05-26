@@ -18,6 +18,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderDetail> OrderDetails { get; set; }
 
+    // ── Chat ──
+    public DbSet<ChatRoom> ChatRooms { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -29,5 +33,13 @@ public class ApplicationDbContext : DbContext
             .WithMany(p => p.ProductImages)
             .HasForeignKey(pi => pi.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ── Chat indexes ──
+        modelBuilder.Entity<ChatRoom>()
+            .HasIndex(r => r.RoomId)
+            .IsUnique();
+
+        modelBuilder.Entity<ChatMessage>()
+            .HasIndex(m => m.RoomId);
     }
 }

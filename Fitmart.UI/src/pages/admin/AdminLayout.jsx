@@ -10,6 +10,7 @@ const menuItems = [
   { icon: '🛍️', label: 'Đơn hàng',    path: '/admin/orders',     end: false },
   { icon: '👥', label: 'Người dùng',  path: '/admin/users',      end: false },
   { icon: '🏷️', label: 'Danh mục',    path: '/admin/categories', end: false },
+  { icon: '💬', label: 'Tin nhắn',    path: '/admin/chat',       end: false },
 ];
 
 /**

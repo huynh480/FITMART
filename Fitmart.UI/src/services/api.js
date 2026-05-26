@@ -184,3 +184,19 @@ export const authApi = {
       body: JSON.stringify(body),
     }),
 };
+
+/* ═══════════════════════════════════════════
+   CHAT  — /api/chat
+   ═══════════════════════════════════════════ */
+export const chatApi = {
+  /** Lấy danh sách phòng chat (Admin only) */
+  getRooms: () => request('/api/chat/rooms'),
+
+  /** Lấy lịch sử tin nhắn trong 1 phòng */
+  getMessages: (roomId) => request(`/api/chat/rooms/${encodeURIComponent(roomId)}/messages`),
+
+  /** Đánh dấu đã đọc (Admin) */
+  markAsRead: (roomId) =>
+    request(`/api/chat/rooms/${encodeURIComponent(roomId)}/read`, { method: 'PUT' }),
+};
+

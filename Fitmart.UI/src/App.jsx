@@ -23,6 +23,7 @@ import ProductsPage from './pages/admin/ProductsPage';
 import OrdersPage from './pages/admin/OrdersPage';
 import UsersPage from './pages/admin/UsersPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
+import ChatManagementPage from './pages/admin/ChatManagementPage';
 
 
 
@@ -88,6 +89,7 @@ function App() {
               <Route path="orders" element={<OrdersPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
+              <Route path="chat" element={<ChatManagementPage />} />
             </Route>
 
             {/* ── Storefront routes ── */}
