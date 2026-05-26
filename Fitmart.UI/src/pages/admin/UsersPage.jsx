@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Table, Input, Select, Modal, Switch, message, Avatar, Spin, Alert } from 'antd';
 import { SearchOutlined, UserOutlined, ExclamationCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import { usersApi } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 
 const { Option } = Select;
 const { confirm } = Modal;
@@ -104,20 +105,21 @@ const initialUsers = [
  * UsersPage — /admin/users
  */
 export default function UsersPage() {
-  const [users, setUsers]       = useState(initialUsers);
+  const [users, setUsers]       = useState([]);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
   const [search, setSearch]     = useState('');
   const [filterRole, setFilterRole] = useState(null);
+  const { getToken } = useAuth();
 
-  /* ── Fetch users (stub — sẵn sàng khi backend có GET /api/users) ── */
+  /* ── Fetch users từ backend ── */
   const fetchUsers = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const data = await usersApi.getAll();
-      if (Array.isArray(data) && data.length > 0) setUsers(data);
+      if (Array.isArray(data)) setUsers(data);
     } catch (e) {
-      console.warn('Users API chưa sẵn sàng, dùng mock data:', e.message);
+      setError(`Không thể tải danh sách người dùng: ${e.message}`);
     } finally { setLoading(false); }
   }, []);
 

@@ -13,6 +13,7 @@ import { BackgroundPaths } from './components/ui/background-paths';
 import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
 import CartDrawer from './components/ui/CartDrawer';
+import ChatWidget from './components/ChatWidget';
 import './App.css';
 
 /* ── Admin pages ── */
@@ -45,6 +46,7 @@ function StorefrontLayout() {
         <Outlet />
       </Content>
       {!isAuthPage && <Footer />}
+      {!isAuthPage && <ChatWidget />}
     </Layout>
   );
 }

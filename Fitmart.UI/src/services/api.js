@@ -13,6 +13,12 @@ async function request(path, options = {}) {
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
+
+  // Attach token if present
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   
   const res = await fetch(`${BASE}${path}`, {
     ...options,
@@ -136,7 +142,45 @@ export const ordersApi = {
    Dùng mock, sẵn sàng swap khi có endpoint.
    ═══════════════════════════════════════════ */
 export const usersApi = {
-  getAll: () => Promise.resolve([]),
-  updateRole: (id, role) => Promise.resolve({ id, role }),
-  updateStatus: (id, status) => Promise.resolve({ id, status }),
+  getAll: () => request('/api/users'),
+  updateRole: (id, role) => request(`/api/users/${id}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  }),
+  updateStatus: (id, status) => Promise.resolve({ id, status }), // TODO: thêm endpoint khi cần
+};
+
+/* ═══════════════════════════════════════════
+   DASHBOARD  — /api/dashboard
+   ═══════════════════════════════════════════ */
+export const dashboardApi = {
+  /** Lấy toàn bộ thống kê cho trang Dashboard admin */
+  getStats: () => request('/api/dashboard/stats'),
+};
+
+/* ═══════════════════════════════════════════
+   AUTH  — /api/users/register & /api/users/login
+   ═══════════════════════════════════════════ */
+export const authApi = {
+  /**
+   * Đăng ký tài khoản mới.
+   * @param {{ fullName: string, email: string, password: string }} body
+   * @returns {Promise<{ token: string, userId: number, name: string, email: string, role: string }>}
+   */
+  register: (body) =>
+    request('/api/users/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  /**
+   * Đăng nhập.
+   * @param {{ email: string, password: string }} body
+   * @returns {Promise<{ token: string, userId: number, name: string, email: string, role: string }>}
+   */
+  login: (body) =>
+    request('/api/users/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };

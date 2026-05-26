@@ -14,9 +14,13 @@ public class User
     [EmailAddress]
     public string Email { get; set; } = null!;
 
+    /// <summary>BCrypt hash của mật khẩu — không bao giờ lưu plain text</summary>
     [Required]
-    public string Password { get; set; } = null!;
+    public string PasswordHash { get; set; } = null!;
 
+    /// <summary>Customer | Admin</summary>
     [Required]
     public string Role { get; set; } = "Customer";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

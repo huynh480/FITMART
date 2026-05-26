@@ -25,7 +25,7 @@ export default function AdminLayout() {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  if (user?.role && user.role !== 'admin') {
+  if (user?.role && user.role.toLowerCase() !== 'admin') {
     return <Navigate to="/login" replace />;
   }
 
