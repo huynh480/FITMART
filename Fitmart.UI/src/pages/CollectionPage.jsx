@@ -361,6 +361,7 @@ function CollectionPageInner() {
                   collectionName={item.collection ? item.collection.toUpperCase() : config.name}
                   price={formatPrice(item.price)}
                   isOutOfStock={item.stock === 0 || item.isOutOfStock === true}
+                  product={item}
                 />
               ))}
             </ProductGrid>

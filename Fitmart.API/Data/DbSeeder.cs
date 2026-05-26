@@ -1,6 +1,9 @@
 using System.Text.Json;
 using System.IO;
 using Fitmart.API.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Linq;
 
 namespace Fitmart.API.Data;
 
@@ -25,9 +28,14 @@ public static class DbSeeder
 
     public static void Seed(ApplicationDbContext context)
     {
-        // Dev mode: xóa và tạo lại DB mỗi lần khởi động
-        // context.Database.EnsureDeleted();
         context.Database.EnsureCreated();
+
+        // Kiểm tra nghiêm ngặt: chỉ nạp dữ liệu mẫu nếu các bảng Products và Categories đang trống hoàn toàn
+        if (context.Products.Any() || context.Categories.Any())
+        {
+            SyncNuoiDatabase(context);
+            return;
+        }
 
         // ════════════════════════════════════════════════════════
         //  SEED USERS
@@ -212,5 +220,177 @@ public static class DbSeeder
             context.Products.AddRange(products);
             context.SaveChanges();
         }
+
+        // Luôn chạy đồng bộ ảnh và mô tả sau khi seed
+        SyncNuoiDatabase(context);
+    }
+
+    public static void SyncNuoiDatabase(ApplicationDbContext context)
+    {
+        var rootDir = Path.Combine(Directory.GetCurrentDirectory(), "..");
+        var nuoiDbPath = Path.GetFullPath(Path.Combine(rootDir, "NuoiDatabase"));
+        if (!Directory.Exists(nuoiDbPath))
+        {
+            return;
+        }
+
+        var subDirs = Directory.GetDirectories(nuoiDbPath);
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg" };
+        var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var destDir = Path.Combine(wwwrootPath, "images", "products");
+
+        // Lấy toàn bộ sản phẩm kèm variants và images vào bộ nhớ để khớp nối bằng ToSlug
+        var allProducts = context.Products
+            .Include(p => p.ProductVariants)
+            .Include(p => p.ProductImages)
+            .ToList();
+
+        foreach (var subDir in subDirs)
+        {
+            var folderName = Path.GetFileName(subDir);
+            
+            // Đọc file mô tả mota.txt
+            var motaPath = Path.Combine(subDir, "mota.txt");
+            var description = "";
+            if (File.Exists(motaPath))
+            {
+                description = File.ReadAllText(motaPath, Encoding.UTF8).Trim();
+            }
+
+            // Quét danh sách file ảnh
+            var imageFiles = Directory.GetFiles(subDir)
+                .Where(file => allowedExtensions.Contains(Path.GetExtension(file).ToLower()))
+                .ToList();
+
+            // Nếu mota.txt trống và không có ảnh nào, bỏ qua thư mục này
+            if (string.IsNullOrEmpty(description) && imageFiles.Count == 0)
+            {
+                continue;
+            }
+
+            // Khớp nối theo ToSlug(Name) hoặc Name gốc
+            var product = allProducts
+                .FirstOrDefault(p => ToSlug(p.Name) == folderName || 
+                                     p.Name.Equals(folderName, StringComparison.OrdinalIgnoreCase));
+
+            if (product != null)
+            {
+                System.Console.WriteLine($"[SyncNuoiDatabase] Dong bo thu muc: {folderName} -> San pham: {product.Name}");
+
+                // Cập nhật Description nếu mota.txt không rỗng
+                if (!string.IsNullOrEmpty(description))
+                {
+                    product.Description = description;
+                    System.Console.WriteLine($"  - Cap nhat mo ta: \"{description.Substring(0, Math.Min(description.Length, 45))}...\"");
+                }
+
+                // Xử lý hình ảnh
+                if (imageFiles.Count > 0)
+                {
+                    if (!Directory.Exists(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    // Lấy danh sách màu sắc thực tế (loại trừ Default) để xoay vòng
+                    var colors = product.ProductVariants
+                        .Select(v => v.Color)
+                        .Where(c => !string.IsNullOrEmpty(c) && c != "Default")
+                        .Distinct()
+                        .ToList();
+
+                    int imageIndex = 0;
+                    foreach (var imgFile in imageFiles)
+                    {
+                        var fileName = Path.GetFileName(imgFile);
+                        var destFileName = $"{folderName}_{fileName}";
+                        var destFilePath = Path.Combine(destDir, destFileName);
+
+                        // Copy ảnh sang thư mục đích wwwroot
+                        File.Copy(imgFile, destFilePath, true);
+
+                        var dbImageUrl = $"/images/products/{destFileName}";
+
+                        // Kiểm tra ảnh đã tồn tại trong ProductImages chưa
+                        var existingImg = product.ProductImages
+                            .FirstOrDefault(pi => pi.ImageUrl == dbImageUrl);
+
+                        string? assignedColor = null;
+                        if (colors.Count > 0)
+                        {
+                            assignedColor = colors[imageIndex % colors.Count];
+                        }
+
+                        if (existingImg != null)
+                        {
+                            existingImg.ColorName = assignedColor;
+                        }
+                        else
+                        {
+                            var newProductImage = new ProductImage
+                            {
+                                ImageUrl = dbImageUrl,
+                                ColorName = assignedColor,
+                                ProductId = product.Id
+                            };
+                            context.ProductImages.Add(newProductImage);
+                        }
+
+                        System.Console.WriteLine($"  - Copy anh: {fileName} -> {destFileName} (Mau: {assignedColor ?? "Mac dinh"})");
+                        imageIndex++;
+                    }
+                }
+
+                context.SaveChanges();
+            }
+            else
+            {
+                System.Console.WriteLine($"[SyncNuoiDatabase] Khong tim thay san pham cho thu muc: {folderName}");
+            }
+        }
+    }
+
+    private static string ToSlug(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        text = text.ToLowerInvariant();
+        
+        // Thay thế ký tự tiếng Việt có dấu
+        string[] arr1 = new string[] { "á", "à", "ả", "ã", "ạ", "â", "ấ", "ầ", "ẩ", "ẫ", "ậ", "ă", "ắ", "ằ", "ẳ", "ẵ", "ặ",
+            "đ",
+            "é", "è", "ẻ", "ẽ", "ẹ", "ê", "ế", "ề", "ể", "ễ", "ệ",
+            "í", "ì", "ỉ", "ĩ", "ị",
+            "ó", "ò", "ỏ", "õ", "ọ", "ô", "ố", "ồ", "ổ", "ỗ", "ộ", "ơ", "ớ", "ờ", "ở", "ỡ", "ợ",
+            "ú", "ù", "ủ", "ũ", "ụ", "ư", "ứ", "ừ", "ử", "ữ", "ự",
+            "ý", "ỳ", "ỷ", "ỹ", "ỵ" };
+        string[] arr2 = new string[] { "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a",
+            "d",
+            "e", "e", "e", "e", "e", "e", "e", "e", "e", "e", "e",
+            "i", "i", "i", "i", "i",
+            "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o", "o",
+            "u", "u", "u", "u", "u", "u", "u", "u", "u", "u", "u",
+            "y", "y", "y", "y", "y" };
+            
+        for (int i = 0; i < arr1.Length; i++)
+        {
+            text = text.Replace(arr1[i], arr2[i]);
+        }
+        
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[áàảãạâấầẩẫậăắằẳẵặ]", "a");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[éèẻẽẹêếềểễệ]", "e");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[íìỉĩị]", "i");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[óòỏõọôốồổỗộơớờởỡợ]", "o");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[úùủũụưứừửữự]", "u");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[ýỳỷỹỵ]", "y");
+        text = text.Replace("đ", "d");
+
+        // Loại bỏ ký tự đặc biệt, chỉ giữ lại chữ cái, số và khoảng trắng / dấu gạch ngang
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[^a-z0-9\s-]", "");
+        // Thay thế khoảng trắng bằng dấu gạch ngang
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", "-");
+        // Rút gọn các dấu gạch ngang liền nhau
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"-+", "-");
+        
+        return text.Trim('-');
     }
 }

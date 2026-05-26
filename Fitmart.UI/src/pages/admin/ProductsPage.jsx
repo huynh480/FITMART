@@ -529,6 +529,7 @@ export default function ProductsPage() {
               Chọn nhiều file cùng lúc để upload. Gán màu cho từng ảnh để hiển thị theo màu ở trang chi tiết.
             </p>
             <Upload
+              className="admin-detail-upload"
               listType="picture-card"
               fileList={detailFileList}
               multiple
@@ -547,7 +548,10 @@ export default function ProductsPage() {
               itemRender={(originNode, file) => {
                 const colorVal = detailFileColors[file.uid] || '';
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <div
+                    className="admin-detail-upload__item-wrapper"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}
+                  >
                     {originNode}
                     <Select
                       size="small"
@@ -558,6 +562,7 @@ export default function ProductsPage() {
                       onClear={() => setDetailFileColors(prev => { const next = { ...prev }; delete next[file.uid]; return next; })}
                       style={{ width: '100%', marginTop: 4, fontSize: 11 }}
                       popupMatchSelectWidth={false}
+                      getPopupContainer={(trigger) => trigger.parentNode}
                     >
                       {selectedColors.map(colorStr => {
                         const [name, hex] = colorStr.includes(':') ? colorStr.split(':') : [colorStr, '#ccc'];

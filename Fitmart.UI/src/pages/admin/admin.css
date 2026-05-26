@@ -493,23 +493,46 @@
   border: 1px solid #e0e0e0;
 }
 
-/* ─── Upload ảnh chi tiết — grid nhỏ gọn ─── */
+/* ─── Upload ảnh chi tiết — grid nhỏ gọn và sửa lỗi overlap select ─── */
 .admin-detail-upload .ant-upload-list-picture-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 8px;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+  column-gap: 12px !important;
+  row-gap: 28px !important; /* Tăng khoảng cách hàng (tương đương gap-y-6) giúp giao diện thông thoáng */
+  align-items: start !important;
+}
+
+.admin-detail-upload .ant-upload-list-item-container {
+  width: 80px !important;
+  height: 112px !important; /* Đủ không gian cho ảnh 80px + margin 4px + Select 28px */
+  margin: 0 !important;
+  position: relative !important;
+  z-index: 10 !important; /* Tránh bị che khuất mặc định */
+}
+
+/* Khi hover hoặc đang chọn màu, đẩy z-index lên để dropdown không bị đè bởi hàng dưới */
+.admin-detail-upload .ant-upload-list-item-container:hover,
+.admin-detail-upload .ant-upload-list-item-container:focus-within {
+  z-index: 50 !important;
 }
 
 .admin-detail-upload .ant-upload-list-picture-card .ant-upload-list-item {
   width: 80px !important;
   height: 80px !important;
   border-radius: 6px;
-  margin: 0;
+  margin: 0 !important;
 }
 
 .admin-detail-upload .ant-upload.ant-upload-select {
   width: 80px !important;
   height: 80px !important;
   border-radius: 6px;
+  margin: 0 !important;
+}
+
+.admin-detail-upload__item-wrapper {
+  position: relative !important;
+  z-index: 10 !important;
+  width: 100% !important;
 }
 

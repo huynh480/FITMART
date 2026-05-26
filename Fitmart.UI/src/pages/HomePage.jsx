@@ -66,6 +66,7 @@ const HomePage = () => {
                   productName={item.name}
                   collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM MỚI'}
                   price={formatPrice(item.price)}
+                  product={item}
                 />
               </Col>
             );
@@ -95,6 +96,7 @@ const HomePage = () => {
                   productName={item.name}
                   collectionName={item.collection ? item.collection.toUpperCase() : 'NỔI BẬT'}
                   price={formatPrice(item.price)}
+                  product={item}
                 />
               </Col>
             );

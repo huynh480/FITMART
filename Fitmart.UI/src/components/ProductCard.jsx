@@ -133,9 +133,7 @@ function ProductImage({ src, alt }) {
 /* ─────────────────────────────────────────────
    Size Selector Modal (Quick Add)
 ───────────────────────────────────────────── */
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
-function SizeSelectorModal({ open, onClose, productName, onSelectSize }) {
+function SizeSelectorModal({ open, onClose, productName, onSelectSize, sizes = [] }) {
   const [selectedSize, setSelectedSize] = React.useState(null);
 
   const handleConfirm = () => {
@@ -211,7 +209,7 @@ function SizeSelectorModal({ open, onClose, productName, onSelectSize }) {
         Size
       </div>
       <div className="flex flex-wrap gap-2">
-        {SIZES.map((size) => (
+        {sizes.map((size) => (
           <button
             key={size}
             onClick={() => setSelectedSize(size)}
@@ -220,7 +218,9 @@ function SizeSelectorModal({ open, onClose, productName, onSelectSize }) {
               fontFamily: "'Roboto', sans-serif",
               fontSize: 13,
               fontWeight: 400,
-              width: 52,
+              width: size === 'One Size' ? 'auto' : 52,
+              paddingLeft: size === 'One Size' ? 12 : 0,
+              paddingRight: size === 'One Size' ? 12 : 0,
               height: 44,
               border: selectedSize === size ? '2px solid #1b1b1b' : '1px solid #d9d9d9',
               background: '#ffffff',
@@ -251,31 +251,61 @@ export function ProductCard({
   isOutOfStock = false,
   isLoading = false,
   className,
+  product,
 }) {
   const { addToCart, openCart } = useCart();
   const [wishlisted, setWishlisted] = React.useState(false);
   const [wishPulse, setWishPulse] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
 
+  const resolveImageUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+    return `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
+
+  const productSizes = React.useMemo(() => {
+    const target = product || {};
+    if (target.productSizes && target.productSizes.length > 0) return target.productSizes;
+    if (target.sizes && target.sizes.length > 0) return target.sizes;
+    if (target.productVariants && target.productVariants.length > 0) {
+      return [...new Set(target.productVariants.map(v => v.size))];
+    }
+    return ['One Size'];
+  }, [product]);
+
   const handleSelectSize = (size) => {
-    const numericPrice = typeof price === 'number' 
-      ? price 
-      : (parseInt(price.replace(/[^0-9]/g, '')) || 0);
-
-    const productObj = {
+    const targetProduct = product || {};
+    const cartProduct = {
+      ...targetProduct,
       id: id,
-      slug: slug,
       name: productName,
-      price: numericPrice,
+      price: targetProduct.price || (typeof price === 'number' ? price : (parseInt(price.replace(/[^0-9]/g, '')) || 0)),
+      slug: slug || targetProduct.slug,
     };
 
-    const defaultColor = {
+    // Lấy ảnh đại diện thật từ variants hoặc fallback về prop image
+    const rawImage = targetProduct.productVariants?.[0]?.imageUrl || image || '';
+    const absoluteImage = resolveImageUrl(rawImage);
+
+    // Trích xuất các màu sắc độc nhất
+    const uniqueColors = [];
+    if (targetProduct.productVariants) {
+      const colorSet = new Set();
+      targetProduct.productVariants.forEach(v => {
+        if (v.color && v.color !== 'Default') colorSet.add(v.color);
+      });
+      uniqueColors.push(...colorSet);
+    }
+    const defaultColorName = uniqueColors.length > 0 ? uniqueColors[0].split(':')[0] : 'Mặc định';
+
+    const virtualColor = {
       id: 'default',
-      name: 'Mặc định',
-      images: [image]
+      name: defaultColorName,
+      images: [absoluteImage],
     };
 
-    addToCart(productObj, size, defaultColor, 1);
+    addToCart(cartProduct, size, virtualColor, 1);
     openCart();
   };
 
@@ -427,6 +457,7 @@ export function ProductCard({
         onClose={() => setModalOpen(false)}
         productName={productName}
         onSelectSize={handleSelectSize}
+        sizes={productSizes}
       />
     </>
   );
