@@ -160,10 +160,20 @@ public class ChatHub : Hub
             }
             else
             {
-                // ── Bước 2: Fallback sang Gemini AI ──
+                // ── Bước 2: Fallback sang Gemini AI (kèm dữ liệu sản phẩm thực) ──
                 _logger.LogInformation("🤖 No keyword match → calling Gemini AI for room {Room}", roomId);
                 await Task.Delay(500);
-                botReply = await _geminiService.GetAIReplyAsync(message);
+
+                // Query danh sách sản phẩm từ DB để AI tư vấn chuẩn xác
+                var products = await _context.Products
+                    .Include(p => p.Category)
+                    .Select(p => new { p.Name, p.Price, Category = p.Category != null ? p.Category.Name : "" })
+                    .ToListAsync();
+
+                var productContext = string.Join("\n", products.Select(p =>
+                    $"- {p.Name} ({p.Category}): {p.Price:N0}đ"));
+
+                botReply = await _geminiService.GetAIReplyAsync(message, productContext);
             }
 
             // ── Gửi phản hồi bot ──
