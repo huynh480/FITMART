@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Modal } from 'antd';
 import { cn } from '@/lib/utils';
 import { API_BASE } from '../services/api';
 import { useCart } from '../hooks/useCart';
+import { useWishlist } from '../hooks/useWishlist';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * ProductCard – FITMART
@@ -254,7 +256,10 @@ export function ProductCard({
   product,
 }) {
   const { addToCart, openCart } = useCart();
-  const [wishlisted, setWishlisted] = React.useState(false);
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const wishlisted = isWishlisted(id);
   const [wishPulse, setWishPulse] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
 
@@ -316,7 +321,11 @@ export function ProductCard({
   const handleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setWishlisted((prev) => !prev);
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    toggleWishlist(id);
     setWishPulse(true);
     setTimeout(() => setWishPulse(false), 300);
   };

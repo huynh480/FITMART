@@ -22,6 +22,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<ChatRoom> ChatRooms { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
+    // ── Wishlist ──
+    public DbSet<Wishlist> Wishlists { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -41,5 +44,24 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<ChatMessage>()
             .HasIndex(m => m.RoomId);
+
+        // ── Wishlist: unique (UserId, ProductId) ──
+        // Product FK sử dụng NoAction để tránh lỗi multiple cascade paths trong SQL Server
+        // (Products đã có cascade đến ProductImages)
+        modelBuilder.Entity<Wishlist>()
+            .HasIndex(w => new { w.UserId, w.ProductId })
+            .IsUnique();
+
+        modelBuilder.Entity<Wishlist>()
+            .HasOne(w => w.Product)
+            .WithMany()
+            .HasForeignKey(w => w.ProductId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Wishlist>()
+            .HasOne(w => w.User)
+            .WithMany()
+            .HasForeignKey(w => w.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

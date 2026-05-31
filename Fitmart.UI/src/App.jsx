@@ -12,8 +12,10 @@ import MyOrdersPage from './pages/MyOrdersPage';
 import { BackgroundPaths } from './components/ui/background-paths';
 import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
+import { WishlistProvider } from './hooks/useWishlist';
 import CartDrawer from './components/ui/CartDrawer';
 import ChatWidget from './components/ChatWidget';
+import WishlistPage from './pages/WishlistPage';
 import './App.css';
 
 /* ── Admin pages ── */
@@ -79,6 +81,7 @@ function App() {
       }}
     >
       <AuthProvider>
+       <WishlistProvider>
        <CartProvider>
         <Router>
           <Routes>
@@ -106,11 +109,12 @@ function App() {
               <Route path="/thank-you" element={<ThankYouPage />} />
               <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/profile" element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
-              <Route path="/wishlist" element={<div style={{padding:'80px 60px'}}><h1>Yêu thích</h1></div>} />
+              <Route path="/wishlist" element={<WishlistPage />} />
             </Route>
           </Routes>
         </Router>
        </CartProvider>
+       </WishlistProvider>
       </AuthProvider>
     </ConfigProvider>
   );

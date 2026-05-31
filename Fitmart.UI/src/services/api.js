@@ -200,3 +200,22 @@ export const chatApi = {
     request(`/api/chat/rooms/${encodeURIComponent(roomId)}/read`, { method: 'PUT' }),
 };
 
+/* ═══════════════════════════════════════════
+   WISHLIST  — /api/wishlist
+   Tất cả endpoint yêu cầu JWT (Authorize)
+   ═══════════════════════════════════════════ */
+export const wishlistApi = {
+  /** Lấy danh sách sản phẩm yêu thích (kèm product detail) */
+  getAll: () => request('/api/wishlist'),
+
+  /** Lấy danh sách productId đã yêu thích (để hiển thị tim đỏ) */
+  getIds: () => request('/api/wishlist/ids'),
+
+  /** Thêm sản phẩm vào yêu thích */
+  add: (productId) =>
+    request(`/api/wishlist/${productId}`, { method: 'POST' }),
+
+  /** Xóa sản phẩm khỏi yêu thích */
+  remove: (productId) =>
+    request(`/api/wishlist/${productId}`, { method: 'DELETE' }),
+};

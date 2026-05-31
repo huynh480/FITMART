@@ -12,6 +12,7 @@ import {
 import navMenuData from '../config/navMenuData';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import { useWishlist } from '../hooks/useWishlist';
 import { categoriesApi } from '../services/api';
 
 const { Panel } = Collapse;
@@ -355,6 +356,7 @@ const Navbar = () => {
 
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
+  const { wishlistCount } = useWishlist();
 
   const closeTimerRef = useRef(null);
   const navItemRefs = useRef({});
@@ -618,10 +620,18 @@ const Navbar = () => {
             <Link
               to="/wishlist"
               id="nav-wishlist-link"
-              aria-label="Danh sách yêu thích"
+              aria-label={`Danh sách yêu thích${wishlistCount > 0 ? ` (${wishlistCount} sản phẩm)` : ''}`}
               style={{ display: 'flex', alignItems: 'center', color: '#1b1b1b' }}
             >
-              <HeartOutlined className="nav-icon" style={{ fontSize: '22px' }} />
+              <Badge
+                count={wishlistCount}
+                size="small"
+                style={{ backgroundColor: '#1b1b1b', color: '#ffffff', fontWeight: 700 }}
+                offset={[-2, 4]}
+                showZero={false}
+              >
+                <HeartOutlined className="nav-icon" style={{ fontSize: '22px' }} />
+              </Badge>
             </Link>
 
             <button
