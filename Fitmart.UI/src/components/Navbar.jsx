@@ -14,6 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { categoriesApi } from '../services/api';
+import SearchOverlay from './SearchOverlay';
 
 const { Panel } = Collapse;
 
@@ -326,6 +327,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const [dbCategories, setDbCategories] = useState([]);
 
@@ -591,6 +593,7 @@ const Navbar = () => {
             <button
               id="nav-search-btn"
               aria-label="Tìm kiếm sản phẩm"
+              onClick={() => setSearchOpen(true)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: '#1b1b1b' }}
             >
               <SearchOutlined className="nav-icon" style={{ fontSize: '22px' }} />
@@ -789,6 +792,9 @@ const Navbar = () => {
           color: #6e6e6e !important;
         }
       `}</style>
+
+      {/* ── Search Overlay ── */}
+      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 };

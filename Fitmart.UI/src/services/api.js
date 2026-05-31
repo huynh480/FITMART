@@ -51,6 +51,18 @@ export const productsApi = {
 
   getById: (id) => request(`/api/products/${id}`),
 
+  /** Tìm kiếm nhanh (autocomplete) — trả về tối đa `limit` sản phẩm */
+  search: (q, limit = 8) => {
+    const qs = new URLSearchParams({ q, limit }).toString();
+    return request(`/api/products/search?${qs}`);
+  },
+
+  /** Tìm kiếm phân trang đầy đủ */
+  searchFull: (params = {}) => {
+    const qs = new URLSearchParams({ pageSize: 24, ...params }).toString();
+    return request(`/api/products?${qs}`);
+  },
+
   create: (body) =>
     request('/api/products', {
       method: 'POST',

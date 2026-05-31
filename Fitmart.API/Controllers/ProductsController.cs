@@ -57,7 +57,8 @@ public class ProductsController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? gender = null,
         [FromQuery] string? collection = null,
-        [FromQuery] int? categoryId = null)
+        [FromQuery] int? categoryId = null,
+        [FromQuery] string? search = null)
     {
         try
         {
@@ -73,6 +74,10 @@ public class ProductsController : ControllerBase
                 query = query.Where(p => p.Gender == gender);
             if (!string.IsNullOrEmpty(collection))
                 query = query.Where(p => p.Collection == collection);
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(p => p.Name.ToLower().Contains(search.ToLower())
+                    || (p.Description != null && p.Description.ToLower().Contains(search.ToLower()))
+                    || (p.Category != null && p.Category.Name.ToLower().Contains(search.ToLower())));
 
             var totalItems = await query.CountAsync();
 
@@ -96,6 +101,43 @@ public class ProductsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi lấy danh sách sản phẩm.", error = ex.Message });
+        }
+    }
+
+    // GET: api/Products/search?q=keyword
+    // Endpoint tìm kiếm nhanh (autocomplete), trả về tối đa 8 sản phẩm
+    [HttpGet("search")]
+    public async Task<ActionResult> SearchProducts([FromQuery] string q = "", [FromQuery] int limit = 8)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return Ok(new { items = new List<ProductDto>(), totalItems = 0 });
+
+            var keyword = q.Trim().ToLower();
+
+            var query = _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductVariants)
+                .Include(p => p.ProductImages)
+                .Where(p => p.Name.ToLower().Contains(keyword)
+                    || (p.Description != null && p.Description.ToLower().Contains(keyword))
+                    || (p.Category != null && p.Category.Name.ToLower().Contains(keyword)));
+
+            var totalItems = await query.CountAsync();
+
+            var products = await query
+                .OrderByDescending(p => p.Id)
+                .Take(limit)
+                .ToListAsync();
+
+            var productDtos = products.Select(p => MapToProductDto(p)).ToList();
+
+            return Ok(new { items = productDtos, totalItems });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi tìm kiếm sản phẩm.", error = ex.Message });
         }
     }
 

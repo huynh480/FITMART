@@ -16,6 +16,7 @@ import { WishlistProvider } from './hooks/useWishlist';
 import CartDrawer from './components/ui/CartDrawer';
 import ChatWidget from './components/ChatWidget';
 import WishlistPage from './pages/WishlistPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 import './App.css';
 
 /* ── Admin pages ── */
@@ -110,6 +111,7 @@ function App() {
               <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/profile" element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
               <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/search" element={<SearchResultsPage />} />
             </Route>
           </Routes>
         </Router>
