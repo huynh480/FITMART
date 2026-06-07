@@ -360,7 +360,7 @@ export function ProductCard({
             <ProductImage src={image} alt={imageAlt} />
           </Link>
 
-          {/* [WishlistBtn] — always visible, top-right */}
+          {/* [WishlistBtn] — hidden by default, appears on card hover */}
           <button
             id={`wishlist-${id}`}
             type="button"
@@ -368,22 +368,25 @@ export function ProductCard({
             aria-label={wishlistLabel}
             aria-pressed={wishlisted}
             className={cn(
-              // layout
-              'absolute top-2 right-2 z-20',
-              'flex items-center justify-center w-9 h-9',
-              // color
-              'text-white',
-              // drop-shadow for visibility on light images
-              'drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]',
-              // transitions
-              'transition-transform duration-200 ease-in-out',
+              // layout — circular white pill
+              'absolute top-3 right-3 z-20',
+              'flex items-center justify-center w-9 h-9 rounded-full',
+              'bg-white text-[#1b1b1b]',
+              // default: hidden, slide down slightly
+              'opacity-0 translate-y-2',
+              // on card hover: slide up + fade in
+              'group-hover:opacity-100 group-hover:translate-y-0',
+              // if already wishlisted: always show
+              wishlisted ? 'opacity-100 translate-y-0' : '',
+              // smooth transition
+              'transition-[opacity,transform] duration-200 ease-in-out',
+              // hover scale
               'hover:scale-110',
               // focus-visible
-              'focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-2 focus-visible:rounded-sm',
-              // wishlist pulse animation
+              'focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-2',
+              // pulse on toggle
               wishPulse ? 'scale-[1.3]' : 'scale-100',
             )}
-            style={{ transition: 'transform 200ms ease-in-out' }}
           >
             <HeartIcon filled={wishlisted} />
           </button>
@@ -443,7 +446,7 @@ export function ProductCard({
             className="no-underline line-clamp-2"
           >
             <span
-              className="font-['Roboto',sans-serif] text-[14px] font-normal leading-[1.35]"
+              className="font-['Roboto',sans-serif] text-[14px] font-normal capitalize leading-[1.35]"
               style={{ color: '#1b1b1b' }}
             >
               {productName}

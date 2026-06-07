@@ -103,6 +103,15 @@ body {
 
 /* Image scale handled by Tailwind group-hover:scale-[1.04] in component */
 
+/* ── Homepage slider — hide scrollbar on all browsers ── */
+.homepage-slider {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge */
+}
+.homepage-slider::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, Opera */
+}
+
 #root {
   width: 100%;
   margin: 0 auto;
