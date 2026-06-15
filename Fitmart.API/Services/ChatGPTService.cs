@@ -5,18 +5,15 @@ using System.Text.Json;
 namespace Fitmart.API.Services;
 
 /// <summary>
-/// Service gọi Google Gemini API để tạo phản hồi AI thông minh.
+/// Service gọi ChatGPT API (OpenAI) để tạo phản hồi AI thông minh.
 /// Dùng làm fallback khi không khớp từ khóa trong ChatHub.
 /// </summary>
-public class GeminiService
+public class ChatGPTService
 {
     private readonly HttpClient _http;
-    private readonly ILogger<GeminiService> _logger;
+    private readonly ILogger<ChatGPTService> _logger;
     private readonly string _apiKey;
-
-    // ✅ Đổi sang gemini-2.0-flash (gemini-1.5-flash đã bị Google deprecated → 404)
-    private const string ENDPOINT =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    private readonly string _apiUrl;
 
     private const string SYSTEM_PROMPT =
         "Bạn là Trợ lý ảo thông minh tên là FITMART Bot của cửa hàng quần áo thể thao cao cấp FITMART. " +
@@ -25,16 +22,18 @@ public class GeminiService
 
     private const int MAX_RETRIES = 3;
 
-    public GeminiService(HttpClient http, ILogger<GeminiService> logger, IConfiguration config)
+    public ChatGPTService(HttpClient http, ILogger<ChatGPTService> logger, IConfiguration config)
     {
         _http   = http;
         _logger = logger;
-        _apiKey = config["Gemini:ApiKey"]
-            ?? "AIzaSyBBHkfpZT6wkTkHZGQ-92l7oQxxLxOccXM";
+        _apiKey = config["ChatGPT:ApiKey"]
+            ?? "sk-W8S4SPcV9Gq88V7XMO4JIQHJayWq8ABRGZzT1oZH4BElC0yJ";
+        _apiUrl = config["ChatGPT:ApiUrl"]
+            ?? "https://api.chatanywhere.tech/v1/chat/completions";
     }
 
     /// <summary>
-    /// Gửi tin nhắn của khách lên Gemini và nhận phản hồi AI.
+    /// Gửi tin nhắn của khách lên ChatGPT và nhận phản hồi AI.
     /// productContext chứa dữ liệu sản phẩm thực từ DB để AI tư vấn chuẩn xác.
     /// Tự động retry khi gặp 429 Rate Limit.
     /// </summary>
@@ -42,8 +41,6 @@ public class GeminiService
     {
         try
         {
-            var url = $"{ENDPOINT}?key={_apiKey}";
-
             // Ghép System Prompt + dữ liệu sản phẩm thực
             var fullSystemPrompt = SYSTEM_PROMPT;
             if (!string.IsNullOrWhiteSpace(productContext))
@@ -55,27 +52,18 @@ public class GeminiService
                     "Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý các sản phẩm tương tự có sẵn.";
             }
 
-            // Cấu trúc request theo Gemini API spec
+            // Cấu trúc request theo OpenAI Chat Completion API spec
             var payload = new
             {
-                system_instruction = new
+                model = "gpt-4o-mini",
+                messages = new[]
                 {
-                    parts = new[] { new { text = fullSystemPrompt } }
+                    new { role = "system", content = fullSystemPrompt },
+                    new { role = "user", content = userMessage }
                 },
-                contents = new[]
-                {
-                    new
-                    {
-                        role = "user",
-                        parts = new[] { new { text = userMessage } }
-                    }
-                },
-                generationConfig = new
-                {
-                    temperature     = 0.7,
-                    maxOutputTokens = 256,
-                    topP            = 0.9,
-                }
+                temperature = 0.7,
+                max_tokens = 256,
+                top_p = 0.9
             };
 
             var json = JsonSerializer.Serialize(payload);
@@ -83,8 +71,15 @@ public class GeminiService
             // ── Retry loop cho 429 Rate Limit ──
             for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
             {
-                var content  = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _http.PostAsync(url, content);
+                var request = new HttpRequestMessage(HttpMethod.Post, _apiUrl)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+
+                // Add Authorization header
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+
+                var response = await _http.SendAsync(request);
                 var body     = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -92,10 +87,9 @@ public class GeminiService
                     // Parse response JSON
                     using var doc = JsonDocument.Parse(body);
                     var text = doc.RootElement
-                        .GetProperty("candidates")[0]
+                        .GetProperty("choices")[0]
+                        .GetProperty("message")
                         .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
                         .GetString();
 
                     return text?.Trim() ?? "Mình chưa thể trả lời lúc này, nhân viên sẽ hỗ trợ bạn sớm nhé! 🙏";
@@ -105,25 +99,25 @@ public class GeminiService
                 if (response.StatusCode == HttpStatusCode.TooManyRequests)
                 {
                     var delay = attempt * 2000; // 2s, 4s, 6s
-                    _logger.LogWarning("⏳ Gemini 429 Rate Limit (attempt {Attempt}/{Max}), retry after {Delay}ms",
+                    _logger.LogWarning("⏳ ChatGPT 429 Rate Limit (attempt {Attempt}/{Max}), retry after {Delay}ms",
                         attempt, MAX_RETRIES, delay);
                     await Task.Delay(delay);
                     continue;
                 }
 
                 // Lỗi khác → log và return fallback
-                _logger.LogWarning("⚠️ Gemini API error {Status}: {Body}",
+                _logger.LogWarning("⚠️ ChatGPT API error {Status}: {Body}",
                     (int)response.StatusCode, body.Length > 500 ? body[..500] : body);
                 return "Xin lỗi, mình chưa hiểu câu hỏi của bạn. Bạn có thể liên hệ hotline hoặc chờ nhân viên hỗ trợ nhé! 📞";
             }
 
             // Hết retry
-            _logger.LogWarning("⚠️ Gemini API: exhausted {Max} retries (429)", MAX_RETRIES);
+            _logger.LogWarning("⚠️ ChatGPT API: exhausted {Max} retries (429)", MAX_RETRIES);
             return "Hệ thống AI đang bận, bạn vui lòng thử lại sau hoặc chờ nhân viên hỗ trợ nhé! 🙏";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Gemini API call failed");
+            _logger.LogError(ex, "❌ ChatGPT API call failed");
             return "Xin lỗi, hệ thống AI đang bận. Nhân viên sẽ hỗ trợ bạn ngay! 🛠️";
         }
     }

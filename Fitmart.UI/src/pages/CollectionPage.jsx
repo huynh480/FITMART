@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Pagination } from 'antd';
 import { ProductCard, ProductGrid } from '../components/ProductCard';
 import CollectionHero from '../components/ui/CollectionHero';
@@ -138,6 +138,8 @@ function CollectionPageInner() {
 
   // Config tĩnh — vẫn dùng để lấy apiCategory, filters, relatedTags
   const config = getCollectionConfig(slug || 'nam');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sortParam = searchParams.get('sort');
 
   // ── Dữ liệu danh mục từ API (name + description) ──────────────────────────
   const [apiCategory, setApiCategory] = useState(null); // { name, description } | null
@@ -194,8 +196,13 @@ function CollectionPageInner() {
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(emptyFilters);
-  const [sort, setSort] = useState('featured');
+  const [sort, setSort] = useState(sortParam || 'featured');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Sync URL search param with sort state when URL updates
+  useEffect(() => {
+    setSort(sortParam || 'featured');
+  }, [sortParam]);
 
   const gridRef = useRef(null);
 
@@ -205,7 +212,7 @@ function CollectionPageInner() {
     setLoading(true);
     setAllProducts([]);
     setFilters(emptyFilters());
-    setSort('featured');
+    setSort(sortParam || 'featured');
     setCurrentPage(1);
 
     async function load() {
@@ -287,13 +294,25 @@ function CollectionPageInner() {
   const handleSortChange = useCallback((val) => {
     setSort(val);
     setCurrentPage(1);
-  }, []);
+    setSearchParams(prev => {
+      if (val === 'featured') {
+        prev.delete('sort');
+      } else {
+        prev.set('sort', val);
+      }
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const handleClearAll = useCallback(() => {
     setFilters(emptyFilters());
     setSort('featured');
     setCurrentPage(1);
-  }, []);
+    setSearchParams(prev => {
+      prev.delete('sort');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const handlePageChange = useCallback((page) => {
     setCurrentPage(page);

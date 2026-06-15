@@ -18,8 +18,8 @@ builder.Services.AddControllers();
 // ── SignalR (Real-time Chat) ──
 builder.Services.AddSignalR();
 
-// ── Gemini AI Bot ──
-builder.Services.AddHttpClient<Fitmart.API.Services.GeminiService>();
+// ── ChatGPT AI Bot ──
+builder.Services.AddHttpClient<Fitmart.API.Services.ChatGPTService>();
 
 // ── CORS — cho phép React frontend gọi API ──
 builder.Services.AddCors(options =>

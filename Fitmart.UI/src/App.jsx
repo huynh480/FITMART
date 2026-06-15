@@ -17,6 +17,7 @@ import CartDrawer from './components/ui/CartDrawer';
 import ChatWidget from './components/ChatWidget';
 import WishlistPage from './pages/WishlistPage';
 import SearchResultsPage from './pages/SearchResultsPage';
+import VnpayReturnPage from './pages/VnpayReturnPage';
 import './App.css';
 
 /* ── Admin pages ── */
@@ -112,6 +113,7 @@ function App() {
               <Route path="/profile" element={<div style={{padding:'80px 60px'}}><h1>Tài khoản</h1></div>} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/search" element={<SearchResultsPage />} />
+              <Route path="/vnpay-return" element={<VnpayReturnPage />} />
             </Route>
           </Routes>
         </Router>

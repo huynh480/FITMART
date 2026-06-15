@@ -69,35 +69,67 @@ const SectionHeader = ({ title, linkTo = '/collections' }) => (
 const ProductSlider = ({ items }) => {
   const scrollRef = useRef(null);
 
-  return (
-    <div
-      ref={scrollRef}
-      className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 homepage-slider"
-    >
-      {items.map((item) => {
-        const images =
-          item.productVariants && item.productVariants.length > 0
-            ? [...new Set(item.productVariants.map((v) => v.imageUrl))]
-            : [];
+  const scroll = (direction) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -350 : 350,
+        behavior: 'smooth'
+      });
+    }
+  };
 
-        return (
-          /* Wrapper cố định chiều rộng + snap-start */
-          <div
-            key={item.id}
-            className="flex-shrink-0 snap-start w-[70vw] md:w-[calc(25%-12px)]"
-          >
-            <ProductCard
-              id={item.id}
-              slug={item.slug || String(item.id)}
-              image={images[0]}
-              productName={item.name}
-              collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM'}
-              price={formatPrice(item.price)}
-              product={item}
-            />
-          </div>
-        );
-      })}
+  return (
+    <div className="relative group">
+      {/* Nút điều hướng Trái */}
+      <button
+        onClick={() => scroll('left')}
+        className="absolute top-1/2 -translate-y-1/2 left-2 z-10 hidden md:flex items-center justify-center w-9 h-9 bg-white/50 backdrop-blur-sm border border-gray-100 rounded-full shadow-sm text-black opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/80"
+        aria-label="Cuộn trái"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 homepage-slider [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((item) => {
+          const images =
+            item.productVariants && item.productVariants.length > 0
+              ? [...new Set(item.productVariants.map((v) => v.imageUrl))]
+              : [];
+
+          return (
+            <div
+              key={item.id}
+              className="flex-shrink-0 snap-start w-[70vw] md:w-[calc(25%-12px)]"
+            >
+              <ProductCard
+                id={item.id}
+                slug={item.slug || String(item.id)}
+                image={images[0]}
+                productName={item.name}
+                collectionName={item.collection ? item.collection.toUpperCase() : 'SẢN PHẨM'}
+                price={formatPrice(item.price)}
+                product={item}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Nút điều hướng Phải */}
+      <button
+        onClick={() => scroll('right')}
+        className="absolute top-1/2 -translate-y-1/2 right-2 z-10 hidden md:flex items-center justify-center w-9 h-9 bg-white/50 backdrop-blur-sm border border-gray-100 rounded-full shadow-sm text-black opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/80"
+        aria-label="Cuộn phải"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
     </div>
   );
 };

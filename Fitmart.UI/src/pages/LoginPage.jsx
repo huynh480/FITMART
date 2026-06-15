@@ -38,19 +38,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      {/* Left Column - Image */}
-      <div style={{ flex: '0 0 50%' }} className="auth-img-col">
-        <img 
-          src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1470&auto=format&fit=crop" 
-          alt="Gym workout" 
-          style={{ width: '100%', height: '100vh', objectFit: 'cover', display: 'block' }} 
-        />
-      </div>
-
-      {/* Right Column - Form */}
-      <div style={{ flex: '1 1 50%', display: 'flex', flexDirection: 'column', padding: '60px 48px', backgroundColor: '#ffffff', overflowY: 'auto' }}>
-        <div style={{ maxWidth: '440px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '20px' }}>
+      {/* Center Column - Form */}
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '60px 48px', backgroundColor: '#ffffff', width: '100%', maxWidth: '500px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }}>
+        <div style={{ width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
           
           <Link to="/" style={{ alignSelf: 'center', fontSize: '24px', fontWeight: 900, color: '#1b1b1b', textDecoration: 'none', letterSpacing: '3px', marginBottom: '60px' }}>
             FITMART
@@ -189,13 +180,6 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
-      <style>{`
-        @media (max-width: 768px) {
-          .auth-img-col {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

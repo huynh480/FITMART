@@ -11,10 +11,12 @@ namespace Fitmart.API.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public OrdersController(ApplicationDbContext context)
+    public OrdersController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     // POST: api/Orders
@@ -91,11 +93,32 @@ public class OrdersController : ControllerBase
             // 6. Xác nhận Transaction thành công
             await transaction.CommitAsync();
 
+            string paymentUrl = "";
+            if (newOrder.PaymentMethod.ToLower() == "vnpay")
+            {
+                var vnpay = new Fitmart.API.Services.VnPayLibrary();
+                vnpay.AddRequestData("vnp_Version", "2.1.0");
+                vnpay.AddRequestData("vnp_Command", "pay");
+                vnpay.AddRequestData("vnp_TmnCode", _configuration["Vnpay:TmnCode"] ?? "");
+                vnpay.AddRequestData("vnp_Amount", (newOrder.TotalAmount * 100).ToString("0"));
+                vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+                vnpay.AddRequestData("vnp_CurrCode", "VND");
+                vnpay.AddRequestData("vnp_IpAddr", Fitmart.API.Services.VnPayLibrary.GetIpAddress(HttpContext));
+                vnpay.AddRequestData("vnp_Locale", "vn");
+                vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang: " + newOrder.Id);
+                vnpay.AddRequestData("vnp_OrderType", "other");
+                vnpay.AddRequestData("vnp_ReturnUrl", _configuration["Vnpay:ReturnUrl"] ?? "");
+                vnpay.AddRequestData("vnp_TxnRef", newOrder.Id.ToString());
+
+                paymentUrl = vnpay.CreateRequestUrl(_configuration["Vnpay:BaseUrl"] ?? "", _configuration["Vnpay:HashSecret"] ?? "");
+            }
+
             return Ok(new 
             { 
                 message = "Tạo đơn hàng thành công!", 
                 orderId = newOrder.Id,
-                totalAmount = newOrder.TotalAmount
+                totalAmount = newOrder.TotalAmount,
+                paymentUrl = paymentUrl
             });
         }
         catch (Exception ex)

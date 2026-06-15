@@ -13,21 +13,21 @@ namespace Fitmart.API.Hubs;
 ///
 /// ── Hybrid Auto-Reply Bot ──
 /// 1. Bắt từ khóa → phản hồi kịch bản (chào hỏi, size, ship...)
-/// 2. Không khớp → fallback sang Google Gemini AI
+/// 2. Không khớp → fallback sang ChatGPT AI
 /// </summary>
 public class ChatHub : Hub
 {
     private readonly ILogger<ChatHub> _logger;
     private readonly ApplicationDbContext _context;
-    private readonly GeminiService _geminiService;
+    private readonly ChatGPTService _chatGPTService;
 
     private const string BOT_NAME = "FITMART AI Bot";
 
-    public ChatHub(ILogger<ChatHub> logger, ApplicationDbContext context, GeminiService geminiService)
+    public ChatHub(ILogger<ChatHub> logger, ApplicationDbContext context, ChatGPTService chatGPTService)
     {
         _logger = logger;
         _context = context;
-        _geminiService = geminiService;
+        _chatGPTService = chatGPTService;
     }
 
     // ═══════════════════════════════════════════════
@@ -160,8 +160,8 @@ public class ChatHub : Hub
             }
             else
             {
-                // ── Bước 2: Fallback sang Gemini AI (kèm dữ liệu sản phẩm thực) ──
-                _logger.LogInformation("🤖 No keyword match → calling Gemini AI for room {Room}", roomId);
+                // ── Bước 2: Fallback sang ChatGPT AI (kèm dữ liệu sản phẩm thực) ──
+                _logger.LogInformation("🤖 No keyword match → calling ChatGPT AI for room {Room}", roomId);
                 await Task.Delay(500);
 
                 // Query danh sách sản phẩm từ DB để AI tư vấn chuẩn xác
@@ -173,7 +173,7 @@ public class ChatHub : Hub
                 var productContext = string.Join("\n", products.Select(p =>
                     $"- {p.Name} ({p.Category}): {p.Price:N0}đ"));
 
-                botReply = await _geminiService.GetAIReplyAsync(message, productContext);
+                botReply = await _chatGPTService.GetAIReplyAsync(message, productContext);
             }
 
             // ── Gửi phản hồi bot ──

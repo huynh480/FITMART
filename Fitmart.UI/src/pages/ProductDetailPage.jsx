@@ -4,6 +4,7 @@ import { formatPrice } from '../config/productData';
 import { SizeSelector } from '../components/ui/SizeSelector';
 import { QuantityInput } from '../components/ui/QuantityInput';
 import { useCart } from '../hooks/useCart';
+import { ProductCard } from '../components/ProductCard';
 
 const BACKEND_URL = 'http://localhost:5049';
 
@@ -194,7 +195,15 @@ function ProductDetailPage() {
 
         {/* 1. Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm mb-8 font-['Roboto',sans-serif]">
-          <Link to="/" className="text-[#6e6e6e] hover:text-[#1b1b1b] transition-colors">Trang chủ</Link>
+          <Link
+            to="/"
+            style={{ color: '#6e6e6e', textDecoration: 'none' }}
+            className="transition-colors hover:text-[#1b1b1b]"
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#1b1b1b'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#6e6e6e'; }}
+          >
+            Trang chủ
+          </Link>
           <span className="text-[#6e6e6e]">/</span>
           <span className="text-[#1b1b1b] font-medium truncate">{product.name}</span>
         </nav>
@@ -386,37 +395,19 @@ function ProductDetailPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((p) => {
                 const pImg = (p.productVariants && p.productVariants[0]?.imageUrl) || (p.productImages && p.productImages[0]?.imageUrl) || '';
-                const resolvedUrl = resolveImageUrl(pImg);
                 const targetSlug = p.slug || String(p.id);
 
                 return (
-                  <Link
+                  <ProductCard
                     key={p.id}
-                    to={`/products/${targetSlug}`}
-                    className="group flex flex-col focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-2"
-                  >
-                    {/* Image Wrapper */}
-                    <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 border border-[#ebebeb]">
-                      <img
-                        src={resolvedUrl || PLACEHOLDER_IMG}
-                        alt={p.name}
-                        onError={(e) => { e.currentTarget.src = PLACEHOLDER_IMG; }}
-                        className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    {/* Info */}
-                    <div className="flex flex-col pt-3 pb-2 space-y-1">
-                      <span className="font-['Roboto',sans-serif] text-xs font-medium uppercase tracking-widest text-[#6e6e6e]">
-                        {p.collection || 'SẢN PHẨM MỚI'}
-                      </span>
-                      <span className="font-['Roboto',sans-serif] text-sm font-semibold leading-[1.35] text-[#1b1b1b] line-clamp-2 uppercase">
-                        {p.name}
-                      </span>
-                      <span className="font-['Roboto',sans-serif] text-sm font-bold text-[#1b1b1b]">
-                        {formatPrice(p.price)}
-                      </span>
-                    </div>
-                  </Link>
+                    id={p.id}
+                    slug={targetSlug}
+                    image={pImg}
+                    productName={p.name}
+                    collectionName={p.collection ? p.collection.toUpperCase() : 'SẢN PHẨM'}
+                    price={formatPrice(p.price)}
+                    product={p}
+                  />
                 );
               })}
             </div>

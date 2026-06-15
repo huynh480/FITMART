@@ -18,7 +18,7 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState(user?.name || '');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' or 'bank'
+  const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' or 'vnpay'
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sync user name if it loads later
@@ -100,7 +100,13 @@ export default function CheckoutPage() {
       // Clear Cart state
       clearCart();
 
-      // Redirect to Thank You page
+      // Check for VNPay redirect
+      if (paymentMethod === 'vnpay' && result?.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return; // Dừng tại đây, chờ user thanh toán
+      }
+
+      // Redirect to Thank You page if COD or no paymentUrl
       navigate('/thank-you', {
         state: {
           orderId: result?.orderId || 'FTM' + Math.floor(Math.random() * 90000 + 10000),
@@ -284,36 +290,39 @@ export default function CheckoutPage() {
                   </div>
                 </label>
 
-                {/* Option 2: Bank Transfer */}
+                {/* Option 2: VNPay */}
                 <label style={{
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '12px',
                   padding: '16px',
-                  border: paymentMethod === 'bank' ? '2px solid #000000' : '1px solid #e8e8e8',
+                  border: paymentMethod === 'vnpay' ? '2px solid #000000' : '1px solid #e8e8e8',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  backgroundColor: paymentMethod === 'bank' ? '#fafafa' : '#ffffff',
+                  backgroundColor: paymentMethod === 'vnpay' ? '#fafafa' : '#ffffff',
                   transition: 'all 0.2s'
                 }}>
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="bank"
-                    checked={paymentMethod === 'bank'}
-                    onChange={() => setPaymentMethod('bank')}
+                    value="vnpay"
+                    checked={paymentMethod === 'vnpay'}
+                    onChange={() => setPaymentMethod('vnpay')}
                     style={{ marginTop: '4px', accentColor: '#000000' }}
                   />
                   <div style={{ textAlign: 'left', width: '100%' }}>
-                    <div style={{ fontWeight: 600, fontSize: '15px', color: '#1b1b1b' }}>Chuyển khoản ngân hàng (Bank Transfer)</div>
+                    <div style={{ fontWeight: 600, fontSize: '15px', color: '#1b1b1b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Thanh toán qua VNPAY
+                      <img src="https://vnpay.vn/s1/vnpay/logo.svg" alt="VNPAY" style={{ height: '16px' }} />
+                    </div>
                     <div style={{ fontSize: '13px', color: '#8c8c8c', marginTop: '4px' }}>
-                      Chuyển khoản qua số tài khoản chính thức của FITMART. Đơn hàng sẽ được xác nhận sau khi nhận tiền.
+                      Thanh toán an toàn, nhanh chóng qua cổng VNPAY. Hỗ trợ quét mã QR, thẻ ATM, Visa/Mastercard.
                     </div>
                   </div>
                 </label>
 
-                {/* Bank Details Dropdown (when selected) */}
-                {paymentMethod === 'bank' && (
+                {/* VNPay Details Dropdown (when selected) */}
+                {paymentMethod === 'vnpay' && (
                   <div style={{
                     marginTop: '8px',
                     padding: '20px',
@@ -323,14 +332,10 @@ export default function CheckoutPage() {
                     textAlign: 'left',
                     animation: 'fadeIn 0.3s ease-in-out'
                   }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1b1b1b', marginBottom: '12px', textTransform: 'uppercase' }}>Thông tin tài khoản:</h3>
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1b1b1b', marginBottom: '12px', textTransform: 'uppercase' }}>Thông tin thanh toán:</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: '#434343' }}>
-                      <div>Ngân hàng: <strong>Techcombank (Ngân hàng Kỹ thương Việt Nam)</strong></div>
-                      <div>Số tài khoản: <strong>1903 8888 9999</strong></div>
-                      <div>Chủ tài khoản: <strong>CONG TY TNHH FITMART VIET NAM</strong></div>
-                      <div>Chi nhánh: <strong>Hội sở chính - Hà Nội</strong></div>
-                      <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '4px', color: '#d46b08', fontSize: '12px' }}>
-                        Nội dung chuyển khoản ghi rõ: <strong>FITMART [Số điện thoại của bạn]</strong>
+                      <div style={{ padding: '10px', backgroundColor: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: '4px', color: '#096dd9', fontSize: '13px' }}>
+                        💡 Sau khi bấm <strong>"Đặt hàng ngay"</strong>, hệ thống sẽ chuyển hướng bạn sang cổng thanh toán của <strong>VNPAY</strong>. Vui lòng hoàn tất thanh toán để đơn hàng được xác nhận.
                       </div>
                     </div>
                   </div>
