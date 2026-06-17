@@ -602,6 +602,11 @@
 .admin-detail-upload__item-wrapper {
   position: relative !important;
   z-index: 10 !important;
-  width: 100% !important;
+}
+
+.admin-detail-upload__item-wrapper:hover,
+.admin-detail-upload__item-wrapper:focus-within,
+.admin-detail-upload__item-wrapper:has(.ant-select-open) {
+  z-index: 50 !important;
 }
 

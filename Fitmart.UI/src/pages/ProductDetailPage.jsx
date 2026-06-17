@@ -177,17 +177,31 @@ function ProductDetailPage() {
     );
   }
 
-  // Extract sizes from variants
+  // Tìm variant khớp với size + color đang chọn
+  const currentColorName = selectedColor ? selectedColor.split(':')[0] : null;
+
+  // Extract sizes from variants — lọc theo màu đang chọn
   const sizes = product.productVariants
     ? [...new Set(product.productVariants.map((v) => v.size))].map((sizeLabel) => {
-        const sizeVariants = product.productVariants.filter((v) => v.size === sizeLabel);
-        const hasStock = sizeVariants.some((v) => v.stockQuantity > 0);
+        // Tìm variant khớp size + color hiện tại
+        const matchedVariant = currentColorName
+          ? product.productVariants.find((v) => v.size === sizeLabel && v.color === currentColorName)
+          : product.productVariants.find((v) => v.size === sizeLabel);
+        const stock = matchedVariant ? matchedVariant.stockQuantity : 0;
         return {
           label: sizeLabel,
-          inStock: hasStock,
+          inStock: stock > 0,
+          stockQuantity: stock,
         };
       })
     : [];
+
+  // Variant đang chọn (khớp cả size + color)
+  const selectedVariant = (selectedSize && product.productVariants)
+    ? product.productVariants.find(
+        (v) => v.size === selectedSize && v.color === (currentColorName || v.color)
+      )
+    : null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -262,27 +276,29 @@ function ProductDetailPage() {
           </div>
 
           {/* Right Column: Product Info — Sticky */}
-          <div className="w-full lg:w-1/2 flex flex-col pt-2 lg:pt-0 lg:sticky lg:top-24 lg:self-start">
+          <div className="w-full lg:w-1/2 flex flex-col pt-2 lg:pt-0 lg:sticky lg:top-24 lg:self-start space-y-8">
 
-            <span className="text-xs font-medium text-[#6e6e6e] tracking-widest uppercase mb-2">
-              {product.collection || 'SẢN PHẨM MỚI'}
-            </span>
-            <h1
-              className="text-2xl md:text-3xl font-medium text-[#1b1b1b] mb-4 leading-tight"
-              style={{ color: '#1b1b1b', opacity: 1 }}
-            >
-              {product.name}
-            </h1>
-
-            <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-xl md:text-2xl font-bold text-[#1b1b1b]">
-                {formatPrice(product.price)}
+            <div>
+              <span className="text-xs font-medium text-[#6e6e6e] tracking-widest uppercase mb-2 block">
+                {product.collection || 'SẢN PHẨM MỚI'}
               </span>
+              <h1
+                className="text-2xl md:text-3xl font-medium text-[#1b1b1b] mb-4 leading-tight"
+                style={{ color: '#1b1b1b', opacity: 1 }}
+              >
+                {product.name}
+              </h1>
+
+              <div className="flex items-baseline gap-3">
+                <span className="text-xl md:text-2xl font-bold text-[#1b1b1b]">
+                  {formatPrice(product.price)}
+                </span>
+              </div>
             </div>
 
             {/* Color Picker */}
             {uniqueColors.length > 0 && (
-              <div className="mb-6">
+              <div>
                 <p className="text-xs font-semibold text-[#1b1b1b] uppercase tracking-wider mb-3">
                   Màu sắc: <span className="font-normal normal-case text-[#6e6e6e]">{selectedColor ? selectedColor.split(':')[0] : ''}</span>
                 </p>
@@ -290,49 +306,72 @@ function ProductDetailPage() {
                   {uniqueColors.map(colorStr => {
                     const [name, hex] = colorStr.includes(':') ? colorStr.split(':') : [colorStr, '#888'];
                     const isActive = selectedColor === colorStr;
+                    // Kiểm tra xem màu này còn hàng không (tất cả variant của màu này)
+                    const colorName = colorStr.split(':')[0];
+                    const colorVariants = product.productVariants?.filter(v => v.color === colorName) || [];
+                    const colorHasStock = colorVariants.some(v => v.stockQuantity > 0);
                     return (
-                      <button
-                        key={colorStr}
-                        type="button"
-                        title={name}
-                        onClick={() => {
-                          setSelectedColor(colorStr);
-                          // Auto-switch to first image of this color (or fallback to shared image)
-                          const selColorName = colorStr.split(':')[0];
-                          const firstImg = product.productImages?.find(img => {
-                            if (!img.colorName) return false;
-                            return img.colorName.split(':')[0] === selColorName;
-                          }) || product.productImages?.find(img => !img.colorName);
-                          
-                          if (firstImg) handleImageChange(resolveImageUrl(firstImg.imageUrl));
-                        }}
-                        className={`w-9 h-9 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                          isActive
-                            ? 'border-black scale-110'
-                            : 'border-gray-200 hover:border-gray-400 hover:scale-105'
-                        }`}
-                      >
-                        <span
-                          className="w-6 h-6 rounded-full"
-                          style={{
-                            backgroundColor: hex,
-                            border: hex === '#ffffff' ? '1px solid #d0d0d0' : 'none',
+                      <div key={colorStr} className="flex flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          title={colorHasStock ? name : `${name} — Hết hàng`}
+                          disabled={!colorHasStock}
+                          onClick={() => {
+                            if (!colorHasStock) return;
+                            setSelectedColor(colorStr);
+                            setSelectedSize(null);
+                            const selColorName = colorStr.split(':')[0];
+                            const firstImg = product.productImages?.find(img => {
+                              if (!img.colorName) return false;
+                              return img.colorName.split(':')[0] === selColorName;
+                            }) || product.productImages?.find(img => !img.colorName);
+                            if (firstImg) handleImageChange(resolveImageUrl(firstImg.imageUrl));
                           }}
-                        />
-                      </button>
+                          className={`w-9 h-9 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                            !colorHasStock
+                              ? 'opacity-40 cursor-not-allowed border-gray-300'
+                              : isActive
+                                ? 'border-black scale-110'
+                                : 'border-gray-200 hover:border-gray-400 hover:scale-105'
+                          }`}
+                        >
+                          <span
+                            className="w-6 h-6 rounded-full"
+                            style={{
+                              backgroundColor: hex,
+                              border: hex === '#ffffff' ? '1px solid #d0d0d0' : 'none',
+                            }}
+                          />
+                        </button>
+                        {!colorHasStock && (
+                          <span className="text-[10px] text-red-400 font-medium">Hết hàng</span>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col gap-8 mb-8">
+            <div className="flex flex-col gap-6">
               <SizeSelector
                 sizes={sizes}
                 selectedSize={selectedSize}
                 onChange={setSelectedSize}
               />
 
+              {/* Hiển thị số lượng tồn kho của variant đang chọn dưới dạng Badge Pill tinh tế */}
+              {selectedVariant && (
+                <div className="flex items-center">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-black border border-emerald-100 rounded-full text-xs font-semibold tracking-wide">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Còn lại: {selectedVariant.stockQuantity} sản phẩm
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div>
               <QuantityInput
                 value={quantity}
                 onChange={setQuantity}
@@ -345,14 +384,14 @@ function ProductDetailPage() {
               onClick={handleAddToCart}
               disabled={!selectedSize || isAdding}
               className={`
-                w-full h-14 flex items-center justify-center
-                font-['Roboto',sans-serif] text-[14px] font-bold uppercase tracking-[0.08em]
-                transition-all duration-200 ease-in-out mb-10 bg-[#000000] text-[#ffffff]
+                w-full h-14 flex items-center justify-center rounded-full
+                font-['Roboto',sans-serif] text-[14px] font-bold uppercase tracking-widest
+                transition-all duration-200 ease-in-out bg-black text-white
                 ${!selectedSize
                   ? 'opacity-40 cursor-not-allowed'
                   : addSuccess
                     ? 'opacity-100'
-                    : 'opacity-100 hover:bg-[#1b1b1b] active:scale-[0.98]'
+                    : 'opacity-100 hover:bg-zinc-800 active:scale-95'
                 }
               `}
             >
@@ -373,7 +412,7 @@ function ProductDetailPage() {
             {/* Accordions — Gymshark minimal style
                  - MÔ TẢ SẢN PHẨM: mở sẵn khi tải trang (defaultOpen)
                  - CHẤT LIỆU, HƯỚNG DẪN BẢO QUẢN: đóng mặc định, click để mở */}
-            <div className="flex flex-col border-t border-gray-200">
+            <div className="flex flex-col border-t border-gray-200 pt-4">
               <Accordion title="MÔ TẢ SẢN PHẨM" content={product.description || 'Chưa có mô tả.'} defaultOpen />
               <Accordion title="CHẤT LIỆU" content="Chất liệu thun cotton/polyester cao cấp, co giãn tốt, thoáng khí hỗ trợ tập luyện tối đa." />
               <Accordion title="HƯỚNG DẪN BẢO QUẢN" content="Giặt máy với chu kỳ nhẹ ở nhiệt độ tối đa 30 độ C. Không sử dụng thuốc tẩy. Ủi ở nhiệt độ thấp nếu cần." />
@@ -386,10 +425,13 @@ function ProductDetailPage() {
         {relatedProducts.length > 0 && (
           <div className="mt-20 border-t border-gray-200 pt-16">
             <div className="flex flex-col items-center mb-12">
-              <h2 className="font-['Roboto',sans-serif] text-2xl md:text-3xl font-extrabold uppercase tracking-widest text-black">
+              <h2 
+                className="font-['Roboto',sans-serif] text-2xl md:text-3xl font-extrabold uppercase tracking-widest"
+                style={{ color: '#000000', opacity: 1 }}
+              >
                 Sản phẩm tương tự
               </h2>
-              <div className="w-16 h-[3px] bg-black mt-3"></div>
+              <div className="w-16 h-[3px] mt-3" style={{ backgroundColor: '#000000', opacity: 1 }}></div>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

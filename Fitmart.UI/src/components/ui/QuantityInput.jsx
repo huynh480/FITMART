@@ -32,13 +32,12 @@ export function QuantityInput({ value = 1, onChange, min = 1, max = 99 }) {
 
   const btnBase = cn(
     'flex items-center justify-center w-11 h-11',
-    'border border-[#d0d0d0] bg-white',
-    'text-[#1b1b1b] text-lg leading-none',
-    'transition-colors duration-125 ease-in-out',
-    'hover:bg-[#f5f5f5] hover:border-[#1b1b1b]',
-    'active:bg-[#ebebeb]',
+    'bg-white text-zinc-800 text-lg leading-none',
+    'transition-all duration-150 ease-in-out',
+    'hover:bg-zinc-50',
+    'active:bg-zinc-100',
     'focus-visible:outline-2 focus-visible:outline-[#1b1b1b] focus-visible:outline-offset-1',
-    'disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-[#d0d0d0]'
+    'disabled:opacity-30 disabled:cursor-not-allowed'
   );
 
   return (
@@ -55,7 +54,7 @@ export function QuantityInput({ value = 1, onChange, min = 1, max = 99 }) {
       >
         Số lượng
       </span>
-      <div className="inline-flex items-center" role="group" aria-label="Số lượng sản phẩm">
+      <div className="inline-flex items-center border border-zinc-200 rounded-md overflow-hidden bg-white max-w-max" role="group" aria-label="Số lượng sản phẩm">
         {/* Decrement */}
         <button
           id="qty-decrement"
@@ -64,7 +63,7 @@ export function QuantityInput({ value = 1, onChange, min = 1, max = 99 }) {
           disabled={value <= min}
           onClick={handleDecrement}
           className={btnBase}
-          style={{ borderRight: 'none', fontFamily: 'Roboto, sans-serif' }}
+          style={{ border: 'none', fontFamily: 'Roboto, sans-serif' }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -93,9 +92,10 @@ export function QuantityInput({ value = 1, onChange, min = 1, max = 99 }) {
           style={{
             width: 52,
             height: 44,
-            border: '1px solid #d0d0d0',
-            borderLeft: 'none',
-            borderRight: 'none',
+            borderTop: 'none',
+            borderBottom: 'none',
+            borderLeft: '1px solid #e4e4e7',
+            borderRight: '1px solid #e4e4e7',
             textAlign: 'center',
             fontFamily: 'Roboto, sans-serif',
             fontSize: 14,
@@ -118,7 +118,7 @@ export function QuantityInput({ value = 1, onChange, min = 1, max = 99 }) {
           disabled={value >= max}
           onClick={handleIncrement}
           className={btnBase}
-          style={{ borderLeft: 'none', fontFamily: 'Roboto, sans-serif' }}
+          style={{ border: 'none', fontFamily: 'Roboto, sans-serif' }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

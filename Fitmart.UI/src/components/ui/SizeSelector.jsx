@@ -43,9 +43,9 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
           type="button"
           style={{
             fontFamily: 'Roboto, sans-serif',
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: 400,
-            color: '#6e6e6e',
+            color: '#a1a1aa',
             textDecoration: 'underline',
             textDecorationStyle: 'dotted',
             background: 'none',
@@ -55,7 +55,7 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
             letterSpacing: '0.04em',
           }}
         >
-          Hướng dẫn chọn size
+          HƯỚNG DẪN CHỌN SIZE
         </button>
       </div>
 
@@ -92,7 +92,6 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
                 // Out of stock
                 isOutOfStock && [
                   'border border-[#e0e0e0] bg-[#fafafa] text-[#c0c0c0] cursor-not-allowed',
-                  'diagonal-line-through', // custom via pseudo
                 ]
               )}
               style={{
@@ -104,8 +103,8 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
                 }),
               }}
             >
-              {/* Out-of-stock: diagonal line overlay */}
-              {isOutOfStock && (
+              {/* Out-of-stock: show "Hết hàng" */}
+              {isOutOfStock ? (
                 <span
                   aria-hidden="true"
                   style={{
@@ -114,16 +113,18 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 13,
-                    color: '#b0b0b0',
+                    fontSize: 10,
+                    color: '#ef4444',
                     fontFamily: 'Roboto, sans-serif',
                     background: 'transparent',
+                    fontWeight: 500,
                   }}
                 >
-                  {size.label}
+                  Hết hàng
                 </span>
+              ) : (
+                size.label
               )}
-              {!isOutOfStock && size.label}
             </button>
           );
         })}
@@ -133,8 +134,8 @@ export function SizeSelector({ sizes = [], selectedSize, onChange }) {
       <p
         style={{
           fontFamily: 'Roboto, sans-serif',
-          fontSize: 11,
-          color: '#9e9e9e',
+          fontSize: 10,
+          color: '#a1a1aa',
           margin: 0,
         }}
       >

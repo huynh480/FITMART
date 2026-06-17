@@ -67,6 +67,19 @@ public class OrdersController : ControllerBase
                 var itemTotal = product.Price * item.Quantity;
                 totalAmount += itemTotal;
 
+                // Kiểm tra tồn kho cho biến thể sản phẩm
+                var variant = await _context.ProductVariants.FirstOrDefaultAsync(v =>
+                    v.ProductId == item.ProductId &&
+                    v.Size == (string.IsNullOrWhiteSpace(item.Size) ? "M" : item.Size) &&
+                    v.Color == (string.IsNullOrWhiteSpace(item.Color) ? "Mặc định" : item.Color));
+                if (variant == null || variant.StockQuantity < item.Quantity)
+                {
+                    return BadRequest(new { message = "Sản phẩm này tạm thời hết hàng hoặc không đủ số lượng!" });
+                }
+                // Trừ số lượng tồn kho
+                variant.StockQuantity -= item.Quantity;
+                _context.ProductVariants.Update(variant);
+
                 // Tạo bản ghi chi tiết
                 var orderDetail = new OrderDetail
                 {
