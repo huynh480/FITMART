@@ -54,7 +54,9 @@ namespace Fitmart.API.Services
             {
                 signData = signData.Remove(data.Length - 1, 1);
             }
+            Console.WriteLine("DEBUG VNPAY - signData: " + signData);
             var vnp_SecureHash = HmacSHA512(vnp_HashSecret, signData);
+            Console.WriteLine("DEBUG VNPAY - hash: " + vnp_SecureHash);
             baseUrl += "vnp_SecureHash=" + vnp_SecureHash;
 
             return baseUrl;

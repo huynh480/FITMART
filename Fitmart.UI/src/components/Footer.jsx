@@ -161,8 +161,8 @@ const Footer = () => {
           <div>
             <p style={headerStyle}>THÔNG TIN</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#ffffff', lineHeight: '2' }}>
-              <div>Hotline: <span style={{ fontWeight: 500 }}>1800 xxxx</span></div>
-              <div>Email: <span style={{ fontWeight: 500 }}>support@fitmart.vn</span></div>
+              <div>Hotline: <span style={{ fontWeight: 500 }}>0387086717</span></div>
+              <div>Email: <span style={{ fontWeight: 500 }}>tranvanhuynh300579@gmail.com</span></div>
               <div>Giờ làm việc: <span style={{ fontWeight: 500 }}>8:00 - 22:00</span></div>
             </div>
           </div>
