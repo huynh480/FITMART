@@ -140,9 +140,10 @@ export default function ProductsPage() {
 
     // Load ảnh chi tiết hiện có từ productImages (bao gồm colorName)
     if (p.productImages && p.productImages.length > 0) {
-      const detailFiles = p.productImages.map((img, index) => ({
-        uid: `detail-${img.id || index}`,
-        name: `detail-${index + 1}.jpg`,
+      const detailFiles = p.productImages.map((img) => ({
+        id: img.id,
+        uid: `detail-${img.id}`,
+        name: `detail-${img.id}.jpg`,
         status: 'done',
         url: img.imageUrl?.startsWith('http')
           ? img.imageUrl
@@ -150,11 +151,11 @@ export default function ProductsPage() {
       }));
       setDetailFileList(detailFiles);
 
-      // Đổ ngược màu sắc của từng ảnh chi tiết
+      // Đổ ngược màu sắc của từng ảnh chi tiết (sử dụng img.id làm key)
       const colorMap = {};
-      p.productImages.forEach((img, index) => {
+      p.productImages.forEach((img) => {
         if (img.colorName) {
-          colorMap[`detail-${img.id || index}`] = img.colorName;
+          colorMap[img.id] = img.colorName;
         }
       });
       setDetailFileColors(colorMap);
@@ -241,17 +242,13 @@ export default function ProductsPage() {
         formData.append('image', fileList[0].originFileObj);
       }
 
-      // Gắn danh sách ảnh chi tiết cũ cần giữ lại và màu tương ứng
+      // Gắn danh sách ảnh chi tiết cũ cần giữ lại và màu tương ứng (sử dụng imageId và colorCode)
       const existingImages = detailFileList
         .filter(f => !f.originFileObj)
         .map(f => {
-          let url = f.url || '';
-          if (url.startsWith(API_BASE)) {
-            url = url.substring(API_BASE.length);
-          }
           return {
-            imageUrl: url,
-            colorName: detailFileColors[f.uid] || null
+            imageId: f.id,
+            colorCode: detailFileColors[f.id] || null
           };
         });
       formData.append('ExistingImagesJson', JSON.stringify(existingImages));
@@ -528,39 +525,75 @@ export default function ProductsPage() {
             <p style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
               Chọn nhiều file cùng lúc để upload. Gán màu cho từng ảnh để hiển thị theo màu ở trang chi tiết.
             </p>
-            <Upload
-              className="admin-detail-upload"
-              listType="picture-card"
-              fileList={detailFileList}
-              multiple
-              beforeUpload={() => false}
-              onChange={({ fileList: newList }) => {
-                setDetailFileList(newList);
-              }}
-              onRemove={(file) => {
-                setDetailFileList(prev => prev.filter(f => f.uid !== file.uid));
-                setDetailFileColors(prev => {
-                  const next = { ...prev };
-                  delete next[file.uid];
-                  return next;
-                });
-              }}
-              itemRender={(originNode, file) => {
-                const colorVal = detailFileColors[file.uid] || '';
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
+              {detailFileList.map((file) => {
+                const key = file.id || file.uid;
+                const colorVal = detailFileColors[key] || '';
+                const src = file.url || file.thumbUrl || '';
+
                 return (
                   <div
+                    key={key}
                     className="admin-detail-upload__item-wrapper"
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      width: 104,
+                      border: '1px solid #d9d9d9',
+                      borderRadius: 8,
+                      padding: 8,
+                      position: 'relative',
+                      background: '#fff'
+                    }}
                   >
-                    {originNode}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailFileList(prev => prev.filter(f => (f.id || f.uid) !== key));
+                        setDetailFileColors(prev => {
+                          const next = { ...prev };
+                          delete next[key];
+                          return next;
+                        });
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        background: '#ff4d4f',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                        zIndex: 10
+                      }}
+                    >
+                      ×
+                    </button>
+
+                    <div style={{ width: 88, height: 88, overflow: 'hidden', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+                      {src ? (
+                        <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <LoadingOutlined />
+                      )}
+                    </div>
+
                     <Select
                       size="small"
                       placeholder="Màu"
                       value={colorVal || undefined}
-                      onChange={(val) => setDetailFileColors(prev => ({ ...prev, [file.uid]: val }))}
+                      onChange={(val) => setDetailFileColors(prev => ({ ...prev, [key]: val }))}
                       allowClear
-                      onClear={() => setDetailFileColors(prev => { const next = { ...prev }; delete next[file.uid]; return next; })}
-                      style={{ width: '100%', marginTop: 4, fontSize: 11 }}
+                      onClear={() => setDetailFileColors(prev => { const next = { ...prev }; delete next[key]; return next; })}
+                      style={{ width: '100%', marginTop: 8, fontSize: 11 }}
                       popupMatchSelectWidth={false}
                       getPopupContainer={(trigger) => trigger.parentNode}
                     >
@@ -581,13 +614,42 @@ export default function ProductsPage() {
                     </Select>
                   </div>
                 );
-              }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <PlusOutlined style={{ fontSize: 18, display: 'block', marginBottom: 4 }} />
-                <div>Thêm ảnh</div>
-              </div>
-            </Upload>
+              })}
+
+              <Upload
+                showUploadList={false}
+                multiple
+                beforeUpload={() => false}
+                onChange={({ fileList: newList }) => {
+                  const updatedList = [...detailFileList];
+                  newList.forEach(newFile => {
+                    if (!updatedList.some(f => f.uid === newFile.uid)) {
+                      if (newFile.originFileObj) {
+                        newFile.thumbUrl = URL.createObjectURL(newFile.originFileObj);
+                      }
+                      updatedList.push(newFile);
+                    }
+                  });
+                  setDetailFileList(updatedList);
+                }}
+              >
+                <div style={{
+                  width: 104,
+                  height: 146,
+                  border: '1px dashed #d9d9d9',
+                  borderRadius: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  background: '#fafafa'
+                }}>
+                  <PlusOutlined style={{ fontSize: 18, marginBottom: 4 }} />
+                  <div style={{ fontSize: 12 }}>Thêm ảnh</div>
+                </div>
+              </Upload>
+            </div>
           </div>
 
         </Form>

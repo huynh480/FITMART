@@ -65,7 +65,7 @@ public class ProductsController : ControllerBase
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))  // Lấy kèm ảnh chi tiết sắp xếp theo Id
                 .AsQueryable();
 
             if (categoryId.HasValue)
@@ -119,7 +119,7 @@ public class ProductsController : ControllerBase
             var query = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))
                 .Where(p => p.Name.ToLower().Contains(keyword)
                     || (p.Description != null && p.Description.ToLower().Contains(keyword))
                     || (p.Category != null && p.Category.Name.ToLower().Contains(keyword)));
@@ -150,7 +150,7 @@ public class ProductsController : ControllerBase
             var products = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))  // Lấy kèm ảnh chi tiết
                 .Where(p => p.IsFeatured)
                 .OrderByDescending(p => p.Id)
                 .Take(8)
@@ -174,7 +174,7 @@ public class ProductsController : ControllerBase
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)  // Lấy kèm ảnh chi tiết
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))  // Lấy kèm ảnh chi tiết sắp xếp theo Id
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
@@ -268,7 +268,7 @@ public class ProductsController : ControllerBase
             var createdProduct = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))
                 .FirstAsync(p => p.Id == product.Id);
 
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, MapToProductDto(createdProduct));
@@ -294,7 +294,7 @@ public class ProductsController : ControllerBase
 
             var product = await _context.Products
                 .Include(p => p.ProductVariants)
-                .Include(p => p.ProductImages)
+                .Include(p => p.ProductImages.OrderBy(pi => pi.Id))
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
@@ -414,8 +414,8 @@ public class ProductsController : ControllerBase
             }
 
             // Xoá các ảnh trong DB mà không có trong danh sách cần giữ lại
-            var urlsToKeep = imagesToKeep.Select(img => img.ImageUrl).ToHashSet();
-            var toDelete = existingDbImages.Where(img => !urlsToKeep.Contains(img.ImageUrl)).ToList();
+            var idsToKeep = imagesToKeep.Select(img => img.ImageId).ToHashSet();
+            var toDelete = existingDbImages.Where(img => !idsToKeep.Contains(img.Id)).ToList();
             foreach (var img in toDelete)
             {
                 _context.ProductImages.Remove(img);
@@ -425,10 +425,10 @@ public class ProductsController : ControllerBase
             // Cập nhật màu sắc cho các ảnh cũ được giữ lại
             foreach (var dbImg in product.ProductImages)
             {
-                var keepInfo = imagesToKeep.FirstOrDefault(img => img.ImageUrl == dbImg.ImageUrl);
+                var keepInfo = imagesToKeep.FirstOrDefault(img => img.ImageId == dbImg.Id);
                 if (keepInfo != null)
                 {
-                    dbImg.ColorName = string.IsNullOrWhiteSpace(keepInfo.ColorName) ? null : keepInfo.ColorName;
+                    dbImg.ColorName = string.IsNullOrWhiteSpace(keepInfo.ColorCode) ? null : keepInfo.ColorCode;
                 }
             }
 
@@ -606,6 +606,6 @@ public class ProductFormModel
 
 public class ExistingImageModel
 {
-    public string ImageUrl { get; set; } = null!;
-    public string? ColorName { get; set; }
+    public int ImageId { get; set; }
+    public string? ColorCode { get; set; }
 }
