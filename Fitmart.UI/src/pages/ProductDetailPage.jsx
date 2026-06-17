@@ -179,13 +179,15 @@ function ProductDetailPage() {
 
   // Tìm variant khớp với size + color đang chọn
   const currentColorName = selectedColor ? selectedColor.split(':')[0] : null;
+  // Helper: chuẩn hoá tên màu (bỏ phần mã hex nếu có)
+  const getColorName = (colorStr) => colorStr ? colorStr.split(':')[0] : colorStr;
 
   // Extract sizes from variants — lọc theo màu đang chọn
   const sizes = product.productVariants
     ? [...new Set(product.productVariants.map((v) => v.size))].map((sizeLabel) => {
-        // Tìm variant khớp size + color hiện tại
+        // Tìm variant khớp size + color hiện tại (so sánh theo tên màu, bỏ mã hex)
         const matchedVariant = currentColorName
-          ? product.productVariants.find((v) => v.size === sizeLabel && v.color === currentColorName)
+          ? product.productVariants.find((v) => v.size === sizeLabel && getColorName(v.color) === currentColorName)
           : product.productVariants.find((v) => v.size === sizeLabel);
         const stock = matchedVariant ? matchedVariant.stockQuantity : 0;
         return {
@@ -199,7 +201,7 @@ function ProductDetailPage() {
   // Variant đang chọn (khớp cả size + color)
   const selectedVariant = (selectedSize && product.productVariants)
     ? product.productVariants.find(
-        (v) => v.size === selectedSize && v.color === (currentColorName || v.color)
+        (v) => v.size === selectedSize && (!currentColorName || getColorName(v.color) === currentColorName)
       )
     : null;
 
@@ -308,7 +310,7 @@ function ProductDetailPage() {
                     const isActive = selectedColor === colorStr;
                     // Kiểm tra xem màu này còn hàng không (tất cả variant của màu này)
                     const colorName = colorStr.split(':')[0];
-                    const colorVariants = product.productVariants?.filter(v => v.color === colorName) || [];
+                    const colorVariants = product.productVariants?.filter(v => getColorName(v.color) === colorName) || [];
                     const colorHasStock = colorVariants.some(v => v.stockQuantity > 0);
                     return (
                       <div key={colorStr} className="flex flex-col items-center gap-1">
